@@ -1,8 +1,9 @@
-const express = require("express");
+import express from "express";
+import healthRoutes from "./routes/health.routes.js";
 
 const app = express();
 
-const PORT = 5000;
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
@@ -11,6 +12,6 @@ app.get("/", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`FlowForge API running on port ${PORT}`);
-});
+app.use("/api/v1/health", healthRoutes);
+
+export default app;
