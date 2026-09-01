@@ -5,6 +5,8 @@ import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import workflowRoutes from "./routes/workflow.routes.js";
 
+import errorHandler from "./middlewares/error.middleware.js";
+
 const app = express();
 
 app.use(express.json());
@@ -20,5 +22,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workflows", workflowRoutes);
+
+app.use(errorHandler);
 
 export default app;

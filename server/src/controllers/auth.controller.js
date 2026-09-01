@@ -15,24 +15,8 @@ export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, email and password are required"
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 8 characters"
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
     const existingUser = await User.findOne({
-      email: normalizedEmail
+      email
     });
 
     if (existingUser) {
@@ -45,8 +29,8 @@ export const register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
+      name,
+      email,
       passwordHash
     });
 
@@ -77,17 +61,8 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required"
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
     const user = await User.findOne({
-      email: normalizedEmail
+      email
     });
 
     if (!user) {
