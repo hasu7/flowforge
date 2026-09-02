@@ -5,7 +5,8 @@ function NodeConfigPanel({
   onUpdate,
   onClose
 }) {
-  const [config, setConfig] = useState({});
+  const [config, setConfig] =
+    useState({});
 
   useEffect(() => {
     if (!node) {
@@ -33,7 +34,8 @@ function NodeConfigPanel({
   }
 
   const nodeType =
-    node.data?.nodeType || "trigger";
+    node.data?.nodeType ||
+    "trigger";
 
   const updateConfig = (
     key,
@@ -44,17 +46,25 @@ function NodeConfigPanel({
       [key]: value
     };
 
-    setConfig(updatedConfig);
+    setConfig(
+      updatedConfig
+    );
 
-    onUpdate(updatedConfig);
+    onUpdate(
+      updatedConfig
+    );
   };
 
   const getNodeTitle = () => {
-    if (nodeType === "http") {
+    if (
+      nodeType === "http"
+    ) {
       return "HTTP Request";
     }
 
-    if (nodeType === "condition") {
+    if (
+      nodeType === "condition"
+    ) {
       return "Condition";
     }
 
@@ -134,7 +144,8 @@ function NodeConfigPanel({
             <select
               id="http-method"
               value={
-                config.method || "GET"
+                config.method ||
+                "GET"
               }
               onChange={(event) =>
                 updateConfig(
@@ -184,8 +195,12 @@ function NodeConfigPanel({
                   event.target.value
                 )
               }
-              placeholder="https://api.example.com"
+              placeholder="https://api.example.com/users/{{data.id}}"
             />
+
+            <small className="config-help">
+              Use {"{{data.field}}"} to reference data from the previous node.
+            </small>
 
           </div>
 
@@ -215,6 +230,10 @@ function NodeConfigPanel({
               }
               placeholder="status"
             />
+
+            <small className="config-help">
+              Example: data.id
+            </small>
 
           </div>
 
@@ -278,7 +297,7 @@ function NodeConfigPanel({
                   event.target.value
                 )
               }
-              placeholder="success"
+              placeholder="200"
             />
 
           </div>

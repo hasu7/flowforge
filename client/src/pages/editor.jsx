@@ -26,6 +26,14 @@ import {
   updateWorkflow
 } from "../services/workflow.services.js";
 
+import {
+  runWorkflow
+} from "../services/execution.service.js";
+
+import {
+  validateWorkflow
+} from "../utils/workflowValidation.js";
+
 import NodePalette from "../components/NodePalette.jsx";
 import FlowNode from "../components/FlowNode.jsx";
 import NodeConfigPanel from "../components/NodeConfigPanel.jsx";
@@ -60,10 +68,16 @@ function Editor() {
   const [saving, setSaving] =
     useState(false);
 
+  const [running, setRunning] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
   const [saveMessage, setSaveMessage] =
+    useState("");
+
+  const [runMessage, setRunMessage] =
     useState("");
 
   useEffect(() => {
@@ -142,7 +156,11 @@ function Editor() {
     };
 
     loadWorkflow();
-  }, [id, setNodes, setEdges]);
+  }, [
+    id,
+    setNodes,
+    setEdges
+  ]);
 
   const onConnect = useCallback(
     (connection) => {
@@ -154,6 +172,8 @@ function Editor() {
       );
 
       setSaveMessage("");
+      setRunMessage("");
+      setError("");
     },
     [setEdges]
   );
@@ -194,6 +214,8 @@ function Editor() {
       setSelectedEdgeId(null);
 
       setSaveMessage("");
+      setRunMessage("");
+      setError("");
     },
     [setNodes]
   );
@@ -226,54 +248,63 @@ function Editor() {
       );
 
       setSaveMessage("");
+      setRunMessage("");
+      setError("");
     },
     [setNodes]
   );
 
-  const handleDeleteSelected = useCallback(() => {
-    if (selectedNodeId) {
-      setNodes((currentNodes) =>
-        currentNodes.filter(
-          (node) =>
-            node.id !== selectedNodeId
-        )
-      );
-
-      setEdges((currentEdges) =>
-        currentEdges.filter(
-          (edge) =>
-            edge.source !==
-              selectedNodeId &&
-            edge.target !==
+  const handleDeleteSelected =
+    useCallback(() => {
+      if (selectedNodeId) {
+        setNodes((currentNodes) =>
+          currentNodes.filter(
+            (node) =>
+              node.id !==
               selectedNodeId
-        )
-      );
+          )
+        );
 
-      setSelectedNodeId(null);
+        setEdges((currentEdges) =>
+          currentEdges.filter(
+            (edge) =>
+              edge.source !==
+                selectedNodeId &&
+              edge.target !==
+                selectedNodeId
+          )
+        );
 
-      setSaveMessage("");
+        setSelectedNodeId(null);
 
-      return;
-    }
+        setSaveMessage("");
+        setRunMessage("");
+        setError("");
 
-    if (selectedEdgeId) {
-      setEdges((currentEdges) =>
-        currentEdges.filter(
-          (edge) =>
-            edge.id !== selectedEdgeId
-        )
-      );
+        return;
+      }
 
-      setSelectedEdgeId(null);
+      if (selectedEdgeId) {
+        setEdges((currentEdges) =>
+          currentEdges.filter(
+            (edge) =>
+              edge.id !==
+              selectedEdgeId
+          )
+        );
 
-      setSaveMessage("");
-    }
-  }, [
-    selectedNodeId,
-    selectedEdgeId,
-    setNodes,
-    setEdges
-  ]);
+        setSelectedEdgeId(null);
+
+        setSaveMessage("");
+        setRunMessage("");
+        setError("");
+      }
+    }, [
+      selectedNodeId,
+      selectedEdgeId,
+      setNodes,
+      setEdges
+    ]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -318,13 +349,8 @@ function Editor() {
     handleDeleteSelected
   ]);
 
-  const handleSave = async () => {
-    setSaving(true);
-
-    setSaveMessage("");
-    setError("");
-
-    try {
+  const buildWorkflowPayload =
+    useCallback(() => {
       const nodesToSave =
         nodes.map((node) => ({
           id: node.id,
@@ -363,11 +389,35 @@ function Editor() {
             null
         }));
 
-      await updateWorkflow(id, {
+      return {
         nodes: nodesToSave,
-
         edges: edgesToSave
-      });
+      };
+    }, [
+      nodes,
+      edges
+    ]);
+
+  const handleSave = async () => {
+    setSaving(true);
+
+    setSaveMessage("");
+    setRunMessage("");
+    setError("");
+
+    try {
+      const workflowPayload =
+        buildWorkflowPayload();
+
+      const response =
+        await updateWorkflow(
+          id,
+          workflowPayload
+        );
+
+      setWorkflow(
+        response.workflow
+      );
 
       setSaveMessage(
         "Workflow saved successfully."
@@ -387,10 +437,86 @@ function Editor() {
     }
   };
 
+  const handleRunWorkflow =
+    async () => {
+      setRunning(true);
+
+      setRunMessage("");
+      setSaveMessage("");
+      setError("");
+
+      const validationErrors =
+        validateWorkflow(
+          nodes,
+          edges
+        );
+
+      if (
+        validationErrors.length > 0
+      ) {
+        setError(
+          validationErrors.join(" ")
+        );
+
+        setRunning(false);
+
+        return;
+      }
+
+      try {
+        const workflowPayload =
+          buildWorkflowPayload();
+
+        const saveResponse =
+          await updateWorkflow(
+            id,
+            workflowPayload
+          );
+
+        setWorkflow(
+          saveResponse.workflow
+        );
+
+        const response =
+          await runWorkflow(id);
+
+        const execution =
+          response.execution;
+
+        if (!execution) {
+          throw new Error(
+            "Execution response was empty."
+          );
+        }
+
+        setRunMessage(
+          `Workflow ${execution.status}.`
+        );
+
+        navigate(
+          `/dashboard/executions/${execution.id}`
+        );
+      } catch (error) {
+        console.error(
+          "Failed to run workflow:",
+          error
+        );
+
+        setError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to run workflow."
+        );
+      } finally {
+        setRunning(false);
+      }
+    };
+
   const selectedNode =
     nodes.find(
       (node) =>
-        node.id === selectedNodeId
+        node.id ===
+        selectedNodeId
     ) || null;
 
   if (loading) {
@@ -441,6 +567,12 @@ function Editor() {
             </span>
           )}
 
+          {runMessage && (
+            <span className="save-message">
+              {runMessage}
+            </span>
+          )}
+
           {error && (
             <span className="save-error">
               {error}
@@ -461,7 +593,9 @@ function Editor() {
             type="button"
             className="secondary-button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={
+              saving || running
+            }
           >
             {saving
               ? "Saving..."
@@ -471,8 +605,16 @@ function Editor() {
           <button
             type="button"
             className="primary-button"
+            onClick={
+              handleRunWorkflow
+            }
+            disabled={
+              running || saving
+            }
           >
-            Run Workflow
+            {running
+              ? "Saving & Running..."
+              : "Run Workflow"}
           </button>
 
         </div>
@@ -481,7 +623,9 @@ function Editor() {
       <div className="editor-workspace">
 
         <NodePalette
-          onAddNode={handleAddNode}
+          onAddNode={
+            handleAddNode
+          }
         />
 
         <div className="editor-container">
@@ -502,19 +646,27 @@ function Editor() {
                 node.id
               );
 
-              setSelectedEdgeId(null);
+              setSelectedEdgeId(
+                null
+              );
             }}
             onEdgeClick={(event, edge) => {
               setSelectedEdgeId(
                 edge.id
               );
 
-              setSelectedNodeId(null);
+              setSelectedNodeId(
+                null
+              );
             }}
             onPaneClick={() => {
-              setSelectedNodeId(null);
+              setSelectedNodeId(
+                null
+              );
 
-              setSelectedEdgeId(null);
+              setSelectedEdgeId(
+                null
+              );
             }}
             fitView
           >
@@ -542,7 +694,9 @@ function Editor() {
           }}
 
           onClose={() => {
-            setSelectedNodeId(null);
+            setSelectedNodeId(
+              null
+            );
           }}
         />
 

@@ -26,6 +26,12 @@ const validateWorkflowGraph = (
   const nodeIds = new Set();
 
   for (const node of nodes) {
+    if (!node.id) {
+      throw new Error(
+        "Every workflow node must have an ID"
+      );
+    }
+
     if (nodeIds.has(node.id)) {
       throw new Error(
         `Duplicate node ID: ${node.id}`
@@ -35,21 +41,47 @@ const validateWorkflowGraph = (
     nodeIds.add(node.id);
   }
 
+  const edgeIds = new Set();
+
   for (const edge of edges) {
+    if (!edge.id) {
+      throw new Error(
+        "Every workflow connection must have an ID"
+      );
+    }
+
+    if (edgeIds.has(edge.id)) {
+      throw new Error(
+        `Duplicate edge ID: ${edge.id}`
+      );
+    }
+
+    edgeIds.add(edge.id);
+
     if (
       !nodeIds.has(edge.source) ||
       !nodeIds.has(edge.target)
     ) {
       throw new Error(
-        `Invalid edge: ${edge.id}`
+        `Connection ${edge.id} points to a missing node`
+      );
+    }
+
+    if (
+      edge.source === edge.target
+    ) {
+      throw new Error(
+        `Node ${edge.source} cannot connect to itself`
       );
     }
   }
 
-  const triggerNodes = nodes.filter(
-    (node) =>
-      getNodeType(node) === "trigger"
-  );
+  const triggerNodes =
+    nodes.filter(
+      (node) =>
+        getNodeType(node) ===
+        "trigger"
+    );
 
   if (triggerNodes.length === 0) {
     throw new Error(
@@ -62,6 +94,204 @@ const validateWorkflowGraph = (
       "Workflow can only contain one trigger node"
     );
   }
+
+  const conditionNodes =
+    nodes.filter(
+      (node) =>
+        getNodeType(node) ===
+        "condition"
+    );
+
+  for (
+    const conditionNode of
+      conditionNodes
+  ) {
+    const outgoingEdges =
+      edges.filter(
+        (edge) =>
+          edge.source ===
+          conditionNode.id
+      );
+
+    const trueEdges =
+      outgoingEdges.filter(
+        (edge) =>
+          edge.sourceHandle ===
+          "true"
+      );
+
+    const falseEdges =
+      outgoingEdges.filter(
+        (edge) =>
+          edge.sourceHandle ===
+          "false"
+      );
+
+    if (trueEdges.length !== 1) {
+      throw new Error(
+        `Condition node ${conditionNode.id} must have exactly one true branch`
+      );
+    }
+
+    if (falseEdges.length !== 1) {
+      throw new Error(
+        `Condition node ${conditionNode.id} must have exactly one false branch`
+      );
+    }
+  }
+
+  const outgoingEdgeMap =
+    new Map();
+
+  for (const node of nodes) {
+    outgoingEdgeMap.set(
+      node.id,
+      []
+    );
+  }
+
+  for (const edge of edges) {
+    const outgoing =
+      outgoingEdgeMap.get(
+        edge.source
+      );
+
+    outgoing.push(edge);
+  }
+
+  for (const node of nodes) {
+    const nodeType =
+      getNodeType(node);
+
+    const outgoingEdges =
+      outgoingEdgeMap.get(
+        node.id
+      );
+
+    if (
+      nodeType !== "condition" &&
+      outgoingEdges.length > 1
+    ) {
+      throw new Error(
+        `Node ${node.id} has multiple outgoing paths`
+      );
+    }
+  }
+
+  const triggerNode =
+    triggerNodes[0];
+
+  const reachableNodes =
+    new Set();
+
+  const queue = [
+    triggerNode.id
+  ];
+
+  while (queue.length > 0) {
+    const currentNodeId =
+      queue.shift();
+
+    if (
+      reachableNodes.has(
+        currentNodeId
+      )
+    ) {
+      continue;
+    }
+
+    reachableNodes.add(
+      currentNodeId
+    );
+
+    const outgoingEdges =
+      outgoingEdgeMap.get(
+        currentNodeId
+      ) || [];
+
+    for (
+      const edge of
+        outgoingEdges
+    ) {
+      queue.push(
+        edge.target
+      );
+    }
+  }
+
+  for (const node of nodes) {
+    if (
+      !reachableNodes.has(
+        node.id
+      )
+    ) {
+      throw new Error(
+        `Node ${node.id} is not reachable from the trigger`
+      );
+    }
+  }
+
+  const visiting =
+    new Set();
+
+  const visited =
+    new Set();
+
+  const detectCycle = (
+    nodeId
+  ) => {
+    if (
+      visiting.has(nodeId)
+    ) {
+      return true;
+    }
+
+    if (
+      visited.has(nodeId)
+    ) {
+      return false;
+    }
+
+    visiting.add(nodeId);
+
+    const outgoingEdges =
+      outgoingEdgeMap.get(
+        nodeId
+      ) || [];
+
+    for (
+      const edge of
+        outgoingEdges
+    ) {
+      if (
+        detectCycle(
+          edge.target
+        )
+      ) {
+        return true;
+      }
+    }
+
+    visiting.delete(
+      nodeId
+    );
+
+    visited.add(
+      nodeId
+    );
+
+    return false;
+  };
+
+  if (
+    detectCycle(
+      triggerNode.id
+    )
+  ) {
+    throw new Error(
+      "Workflow contains a cycle"
+    );
+  }
 };
 
 const getNextEdges = (
@@ -70,11 +300,16 @@ const getNextEdges = (
   branchHandle = null
 ) => {
   return edges.filter((edge) => {
-    if (edge.source !== currentNode.id) {
+    if (
+      edge.source !==
+      currentNode.id
+    ) {
       return false;
     }
 
-    if (branchHandle === null) {
+    if (
+      branchHandle === null
+    ) {
       return true;
     }
 
@@ -83,6 +318,87 @@ const getNextEdges = (
       branchHandle
     );
   });
+};
+
+const getValueFromPath = (
+  object,
+  path
+) => {
+  if (!path) {
+    return undefined;
+  }
+
+  return path
+    .split(".")
+    .reduce(
+      (
+        currentValue,
+        key
+      ) => {
+        if (
+          currentValue === null ||
+          currentValue === undefined
+        ) {
+          return undefined;
+        }
+
+        return currentValue[key];
+      },
+      object
+    );
+};
+
+const resolveTemplate = (
+  value,
+  input
+) => {
+  if (
+    typeof value !==
+    "string"
+  ) {
+    return value;
+  }
+
+  return value.replace(
+    /\{\{\s*([^}]+?)\s*\}\}/g,
+    (
+      match,
+      path
+    ) => {
+      const trimmedPath =
+        path.trim();
+
+      const resolvedValue =
+        getValueFromPath(
+          input,
+          trimmedPath
+        );
+
+      if (
+        resolvedValue ===
+          undefined ||
+        resolvedValue ===
+          null
+      ) {
+        throw new Error(
+          `Unable to resolve workflow variable: ${trimmedPath}`
+        );
+      }
+
+      if (
+        typeof resolvedValue ===
+        "object"
+      ) {
+        return JSON.stringify(
+          resolvedValue
+        );
+      }
+
+      return String(
+        resolvedValue
+      );
+    }
+  );
 };
 
 const executeTriggerNode = async (
@@ -105,16 +421,23 @@ const executeHttpNode = async (
   input
 ) => {
   const method =
-    node.config?.method || "GET";
+    node.config?.method ||
+    "GET";
 
-  const url =
+  const configuredUrl =
     node.config?.url;
 
-  if (!url) {
+  if (!configuredUrl) {
     throw new Error(
       "HTTP Request node requires a URL"
     );
   }
+
+  const url =
+    resolveTemplate(
+      configuredUrl,
+      input
+    );
 
   let parsedUrl;
 
@@ -149,13 +472,16 @@ const executeHttpNode = async (
     };
 
     requestOptions.body =
-      JSON.stringify(input ?? {});
+      JSON.stringify(
+        input ?? {}
+      );
   }
 
-  const response = await fetch(
-    parsedUrl,
-    requestOptions
-  );
+  const response =
+    await fetch(
+      parsedUrl,
+      requestOptions
+    );
 
   const contentType =
     response.headers.get(
@@ -234,62 +560,49 @@ const compareValues = (
   }
 };
 
-const getValueFromPath = (
-  object,
-  path
-) => {
-  if (!path) {
-    return undefined;
-  }
-
-  return path
-    .split(".")
-    .reduce(
-      (currentValue, key) => {
-        if (
-          currentValue ===
-            null ||
-          currentValue ===
-            undefined
-        ) {
-          return undefined;
-        }
-
-        return currentValue[key];
-      },
-      object
-    );
-};
-
 const executeConditionNode = async (
   node,
   input
 ) => {
-  const field =
+  const configuredField =
     node.config?.field;
 
   const operator =
     node.config?.operator ||
     "equals";
 
-  const expectedValue =
+  const configuredValue =
     node.config?.value;
 
-  if (!field) {
+  if (!configuredField) {
     throw new Error(
       "Condition node requires a field"
     );
   }
 
   if (
-    expectedValue ===
+    configuredValue ===
       undefined ||
-    expectedValue === null
+    configuredValue === null
   ) {
     throw new Error(
       "Condition node requires a value"
     );
   }
+
+  const field =
+    resolveTemplate(
+      configuredField,
+      input
+    );
+
+  const expectedValue =
+    resolveTemplate(
+      String(
+        configuredValue
+      ),
+      input
+    );
 
   const actualValue =
     getValueFromPath(
@@ -324,20 +637,26 @@ const executeNode = async (
   const nodeType =
     getNodeType(node);
 
-  if (nodeType === "trigger") {
+  if (
+    nodeType === "trigger"
+  ) {
     return executeTriggerNode(
       node
     );
   }
 
-  if (nodeType === "http") {
+  if (
+    nodeType === "http"
+  ) {
     return executeHttpNode(
       node,
       input
     );
   }
 
-  if (nodeType === "condition") {
+  if (
+    nodeType === "condition"
+  ) {
     return executeConditionNode(
       node,
       input
@@ -356,7 +675,8 @@ const markNodeSkipped = (
   const executionNode =
     execution.nodes.find(
       (node) =>
-        node.nodeId === nodeId
+        node.nodeId ===
+        nodeId
     );
 
   if (
@@ -558,8 +878,8 @@ export const executeWorkflow =
             );
 
           for (
-            const edge
-              of allOutgoingEdges
+            const edge of
+              allOutgoingEdges
           ) {
             if (
               edge.sourceHandle !==
