@@ -10,6 +10,7 @@ import Register from "./pages/register.jsx";
 import Dashboard from "./pages/dashboard.jsx";
 import NewWorkflow from "./pages/newWorkflow.jsx";
 import Editor from "./pages/editor.jsx";
+import Executions from "./pages/executions.jsx";
 
 import DashboardLayout from "./layouts/dashboard.layout.jsx";
 
@@ -74,6 +75,11 @@ function App() {
           <Route
             path="new"
             element={<NewWorkflow />}
+          />
+
+          <Route
+            path="executions"
+            element={<Executions />}
           />
 
           <Route

@@ -17,6 +17,7 @@ const workflowNodeSchema = new mongoose.Schema(
         type: Number,
         required: true
       },
+
       y: {
         type: Number,
         required: true
@@ -48,6 +49,16 @@ const workflowEdgeSchema = new mongoose.Schema(
     target: {
       type: String,
       required: true
+    },
+
+    sourceHandle: {
+      type: String,
+      default: null
+    },
+
+    targetHandle: {
+      type: String,
+      default: null
     }
   },
   {
@@ -105,6 +116,9 @@ const workflowSchema = new mongoose.Schema(
   }
 );
 
-const Workflow = mongoose.model("Workflow", workflowSchema);
+const Workflow = mongoose.model(
+  "Workflow",
+  workflowSchema
+);
 
 export default Workflow;

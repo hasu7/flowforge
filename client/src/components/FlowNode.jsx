@@ -25,12 +25,13 @@ const nodeConfig = {
 
 function FlowNode({ data }) {
   const config =
-    nodeConfig[data.nodeType] ||
+    nodeConfig[data?.nodeType] ||
     nodeConfig.trigger;
 
   return (
     <div className="flow-node">
-      {data.nodeType !== "trigger" && (
+
+      {data?.nodeType !== "trigger" && (
         <Handle
           type="target"
           position={Position.Left}
@@ -38,6 +39,7 @@ function FlowNode({ data }) {
       )}
 
       <div className="flow-node-header">
+
         <span className="flow-node-icon">
           {config.icon}
         </span>
@@ -45,15 +47,17 @@ function FlowNode({ data }) {
         <span className="flow-node-title">
           {config.title}
         </span>
+
       </div>
 
       <p className="flow-node-description">
         {config.description}
       </p>
 
-      {data.nodeType === "condition" ? (
+      {data?.nodeType === "condition" ? (
         <>
           <div className="flow-node-output">
+
             <span>True</span>
 
             <Handle
@@ -61,9 +65,11 @@ function FlowNode({ data }) {
               position={Position.Right}
               id="true"
             />
+
           </div>
 
           <div className="flow-node-output">
+
             <span>False</span>
 
             <Handle
@@ -71,6 +77,7 @@ function FlowNode({ data }) {
               position={Position.Right}
               id="false"
             />
+
           </div>
         </>
       ) : (
@@ -79,6 +86,7 @@ function FlowNode({ data }) {
           position={Position.Right}
         />
       )}
+
     </div>
   );
 }

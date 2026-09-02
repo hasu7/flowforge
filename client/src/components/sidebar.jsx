@@ -16,14 +16,14 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/workflows"
+          to="/dashboard"
           className="sidebar-link"
         >
           Workflows
         </NavLink>
 
         <NavLink
-          to="/executions"
+          to="/dashboard/executions"
           className="sidebar-link"
         >
           Executions

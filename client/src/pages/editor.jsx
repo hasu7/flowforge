@@ -28,6 +28,7 @@ import {
 
 import NodePalette from "../components/NodePalette.jsx";
 import FlowNode from "../components/FlowNode.jsx";
+import NodeConfigPanel from "../components/NodeConfigPanel.jsx";
 
 const nodeTypes = {
   flowNode: FlowNode
@@ -35,6 +36,7 @@ const nodeTypes = {
 
 function Editor() {
   const { id } = useParams();
+
   const navigate = useNavigate();
 
   const [workflow, setWorkflow] =
@@ -45,6 +47,12 @@ function Editor() {
 
   const [edges, setEdges, onEdgesChange] =
     useEdgesState([]);
+
+  const [selectedNodeId, setSelectedNodeId] =
+    useState(null);
+
+  const [selectedEdgeId, setSelectedEdgeId] =
+    useState(null);
 
   const [loading, setLoading] =
     useState(true);
@@ -69,17 +77,6 @@ function Editor() {
 
         setWorkflow(loadedWorkflow);
 
-        /*
-         * Convert database nodes into
-         * React Flow nodes.
-         *
-         * Database:
-         * config.nodeType
-         *
-         * React Flow:
-         * data.nodeType
-         */
-
         const loadedNodes =
           (loadedWorkflow.nodes || []).map(
             (node) => ({
@@ -88,14 +85,21 @@ function Editor() {
               type: "flowNode",
 
               position: {
-                x: node.position?.x || 0,
-                y: node.position?.y || 0
+                x:
+                  node.position?.x || 0,
+
+                y:
+                  node.position?.y || 0
               },
 
               data: {
                 nodeType:
                   node.config?.nodeType ||
-                  "trigger"
+                  "trigger",
+
+                config: {
+                  ...(node.config || {})
+                }
               }
             })
           );
@@ -106,14 +110,18 @@ function Editor() {
           (loadedWorkflow.edges || []).map(
             (edge) => ({
               id: edge.id,
+
               source: edge.source,
+
               target: edge.target,
 
               sourceHandle:
-                edge.sourceHandle || undefined,
+                edge.sourceHandle ||
+                undefined,
 
               targetHandle:
-                edge.targetHandle || undefined
+                edge.targetHandle ||
+                undefined
             })
           );
 
@@ -171,7 +179,9 @@ function Editor() {
         },
 
         data: {
-          nodeType: type
+          nodeType: type,
+
+          config: {}
         }
       };
 
@@ -180,10 +190,133 @@ function Editor() {
         newNode
       ]);
 
+      setSelectedNodeId(nodeId);
+      setSelectedEdgeId(null);
+
       setSaveMessage("");
     },
     [setNodes]
   );
+
+  const handleNodeUpdate = useCallback(
+    (nodeId, updatedConfig) => {
+      setNodes((currentNodes) =>
+        currentNodes.map(
+          (currentNode) => {
+            if (
+              currentNode.id !==
+              nodeId
+            ) {
+              return currentNode;
+            }
+
+            return {
+              ...currentNode,
+
+              data: {
+                ...currentNode.data,
+
+                config: {
+                  ...updatedConfig
+                }
+              }
+            };
+          }
+        )
+      );
+
+      setSaveMessage("");
+    },
+    [setNodes]
+  );
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedNodeId) {
+      setNodes((currentNodes) =>
+        currentNodes.filter(
+          (node) =>
+            node.id !== selectedNodeId
+        )
+      );
+
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (edge) =>
+            edge.source !==
+              selectedNodeId &&
+            edge.target !==
+              selectedNodeId
+        )
+      );
+
+      setSelectedNodeId(null);
+
+      setSaveMessage("");
+
+      return;
+    }
+
+    if (selectedEdgeId) {
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (edge) =>
+            edge.id !== selectedEdgeId
+        )
+      );
+
+      setSelectedEdgeId(null);
+
+      setSaveMessage("");
+    }
+  }, [
+    selectedNodeId,
+    selectedEdgeId,
+    setNodes,
+    setEdges
+  ]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const target =
+        event.target;
+
+      const isTyping =
+        target instanceof
+          HTMLInputElement ||
+        target instanceof
+          HTMLTextAreaElement ||
+        target instanceof
+          HTMLSelectElement ||
+        target.isContentEditable;
+
+      if (isTyping) {
+        return;
+      }
+
+      if (
+        event.key === "Delete" ||
+        event.key === "Backspace"
+      ) {
+        event.preventDefault();
+
+        handleDeleteSelected();
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, [
+    handleDeleteSelected
+  ]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -192,11 +325,6 @@ function Editor() {
     setError("");
 
     try {
-      /*
-       * Convert React Flow nodes
-       * back into database format.
-       */
-
       const nodesToSave =
         nodes.map((node) => ({
           id: node.id,
@@ -205,19 +333,18 @@ function Editor() {
 
           position: {
             x: node.position.x,
+
             y: node.position.y
           },
 
           config: {
             nodeType:
               node.data?.nodeType ||
-              "trigger"
+              "trigger",
+
+            ...(node.data?.config || {})
           }
         }));
-
-      /*
-       * Save connections between nodes.
-       */
 
       const edgesToSave =
         edges.map((edge) => ({
@@ -228,14 +355,17 @@ function Editor() {
           target: edge.target,
 
           sourceHandle:
-            edge.sourceHandle || null,
+            edge.sourceHandle ||
+            null,
 
           targetHandle:
-            edge.targetHandle || null
+            edge.targetHandle ||
+            null
         }));
 
       await updateWorkflow(id, {
         nodes: nodesToSave,
+
         edges: edgesToSave
       });
 
@@ -256,6 +386,12 @@ function Editor() {
       setSaving(false);
     }
   };
+
+  const selectedNode =
+    nodes.find(
+      (node) =>
+        node.id === selectedNodeId
+    ) || null;
 
   if (loading) {
     return (
@@ -312,6 +448,7 @@ function Editor() {
           )}
 
           <button
+            type="button"
             className="secondary-button"
             onClick={() =>
               navigate("/dashboard")
@@ -321,6 +458,7 @@ function Editor() {
           </button>
 
           <button
+            type="button"
             className="secondary-button"
             onClick={handleSave}
             disabled={saving}
@@ -331,6 +469,7 @@ function Editor() {
           </button>
 
           <button
+            type="button"
             className="primary-button"
           >
             Run Workflow
@@ -358,18 +497,55 @@ function Editor() {
               onEdgesChange
             }
             onConnect={onConnect}
+            onNodeClick={(event, node) => {
+              setSelectedNodeId(
+                node.id
+              );
+
+              setSelectedEdgeId(null);
+            }}
+            onEdgeClick={(event, edge) => {
+              setSelectedEdgeId(
+                edge.id
+              );
+
+              setSelectedNodeId(null);
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+
+              setSelectedEdgeId(null);
+            }}
             fitView
           >
-
             <Background />
 
             <Controls />
 
             <MiniMap />
-
           </ReactFlow>
 
         </div>
+
+        <NodeConfigPanel
+          node={selectedNode}
+
+          onUpdate={(updatedConfig) => {
+            if (!selectedNodeId) {
+              return;
+            }
+
+            handleNodeUpdate(
+              selectedNodeId,
+              updatedConfig
+            );
+          }}
+
+          onClose={() => {
+            setSelectedNodeId(null);
+          }}
+        />
+
       </div>
 
     </div>
