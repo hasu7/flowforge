@@ -362,3 +362,273 @@ button {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Workflow Editor */
+
+.editor-page {
+  height: calc(100vh - 88px);
+
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-toolbar {
+  min-height: 78px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 24px;
+
+  background: #151922;
+  border: 1px solid #252a36;
+  border-radius: 10px 10px 0 0;
+}
+
+.editor-title {
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+
+.editor-subtitle {
+  margin-top: 4px;
+
+  color: #8d95a5;
+  font-size: 13px;
+}
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-container {
+  flex: 1;
+
+  min-height: 0;
+
+  background: #0b0d12;
+
+  border-left: 1px solid #252a36;
+  border-right: 1px solid #252a36;
+  border-bottom: 1px solid #252a36;
+}
+
+/* Editor Workspace */
+
+.editor-workspace {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+}
+
+.node-palette {
+  width: 240px;
+  flex-shrink: 0;
+
+  padding: 20px;
+
+  background: #151922;
+  border-left: 1px solid #252a36;
+  border-right: 1px solid #252a36;
+  border-bottom: 1px solid #252a36;
+}
+
+.node-palette-header h3 {
+  font-size: 15px;
+}
+
+.node-palette-header p {
+  margin-top: 6px;
+
+  color: #737c8e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.node-palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-top: 20px;
+}
+
+.node-palette-item {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 12px;
+
+  background: #1b202b;
+  color: #f5f7fa;
+
+  border: 1px solid #2b3240;
+  border-radius: 8px;
+
+  text-align: left;
+
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.node-palette-item:hover {
+  background: #222936;
+  border-color: #414a5b;
+}
+
+.node-icon {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #252c3a;
+  border-radius: 6px;
+
+  font-size: 15px;
+}
+
+.node-palette-item span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.node-palette-item strong {
+  font-size: 13px;
+}
+
+.node-palette-item small {
+  color: #737c8e;
+  font-size: 11px;
+}
+
+/* React Flow */
+
+.editor-container {
+  flex: 1;
+
+  min-width: 0;
+  min-height: 0;
+
+  background: #0b0d12;
+
+  border-right: 1px solid #252a36;
+  border-bottom: 1px solid #252a36;
+}
+
+
+/* Flow Nodes */
+
+.flow-node {
+  min-width: 210px;
+
+  background: #151922;
+
+  border: 1px solid #343b49;
+  border-radius: 9px;
+
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25);
+
+  overflow: hidden;
+}
+
+.flow-node-header {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 12px 14px;
+
+  border-bottom: 1px solid #252a36;
+}
+
+.flow-node-icon {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #252c3a;
+
+  border-radius: 6px;
+
+  font-size: 14px;
+}
+
+.flow-node-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.flow-node-description {
+  padding: 11px 14px;
+
+  color: #737c8e;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.flow-node-output {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: 5px 14px;
+
+  color: #8d95a5;
+
+  font-size: 10px;
+}
+
+.flow-node-output .react-flow__handle {
+  right: -5px;
+}
+
+.flow-node .react-flow__handle {
+  width: 8px;
+  height: 8px;
+
+  background: #8d95a5;
+
+  border: 2px solid #151922;
+}
+
+.flow-node .react-flow__handle:hover {
+  background: #ffffff;
+}
+
+.flow-node:hover {
+  border-color: #596579;
+}
+
+/* Editor Messages */
+
+.save-message {
+  color: #8fd19e;
+  font-size: 12px;
+}
+
+.save-error {
+  color: #ff9da5;
+  font-size: 12px;
+}

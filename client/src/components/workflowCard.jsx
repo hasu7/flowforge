@@ -1,6 +1,17 @@
+import { useNavigate } from "react-router-dom";
+
 function WorkflowCard({ workflow }) {
+  const navigate = useNavigate();
+
+  const handleOpen = () => {
+    navigate(`/dashboard/editor/${workflow._id}`);
+  };
+
   return (
-    <div className="workflow-card">
+    <div
+      className="workflow-card"
+      onClick={handleOpen}
+    >
       <div className="workflow-card-header">
         <h3>{workflow.name}</h3>
 

@@ -2,31 +2,57 @@ import { z } from "zod";
 
 const nodeSchema = z.object({
   id: z.string().min(1),
+
   type: z.string().min(1),
+
   position: z.object({
     x: z.number(),
     y: z.number()
   }),
-  config: z.record(z.string(), z.unknown()).default({})
+
+  config: z
+    .record(z.string(), z.unknown())
+    .default({})
 });
 
 const edgeSchema = z.object({
   id: z.string().min(1),
+
   source: z.string().min(1),
-  target: z.string().min(1)
+
+  target: z.string().min(1),
+
+  sourceHandle: z
+    .string()
+    .nullable()
+    .optional(),
+
+  targetHandle: z
+    .string()
+    .nullable()
+    .optional()
 });
 
 export const createWorkflowSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Workflow name is required")
-    .max(100, "Workflow name cannot exceed 100 characters"),
+    .min(
+      1,
+      "Workflow name is required"
+    )
+    .max(
+      100,
+      "Workflow name cannot exceed 100 characters"
+    ),
 
   description: z
     .string()
     .trim()
-    .max(500, "Description cannot exceed 500 characters")
+    .max(
+      500,
+      "Description cannot exceed 500 characters"
+    )
     .optional()
     .default("")
 });
