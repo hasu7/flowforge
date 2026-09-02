@@ -1,12 +1,34 @@
 import {
   BrowserRouter,
-  Routes,
-  Route
+  Navigate,
+  Route,
+  Routes
 } from "react-router-dom";
 
 import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
 import Dashboard from "./pages/dashboard.jsx";
+
+import { useAuth } from "./context/authContext.jsx";
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (!user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
 
 function App() {
   return (
@@ -14,7 +36,12 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<Dashboard />}
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
         />
 
         <Route
@@ -29,7 +56,11 @@ function App() {
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </BrowserRouter>
