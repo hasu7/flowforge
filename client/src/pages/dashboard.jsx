@@ -1,36 +1,89 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useAuth } from "../context/authContext.jsx";
+import { getWorkflows } from "../services/workflow.services.js";
+import WorkflowCard from "../components/workflowCard.jsx";
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
 
-  const handleLogout = async () => {
-    await logout();
+  const [workflows, setWorkflows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    navigate("/login");
-  };
+  useEffect(() => {
+    const loadWorkflows = async () => {
+      try {
+        const response = await getWorkflows();
+
+        setWorkflows(response.workflows);
+      } catch (error) {
+        setError(
+          error.response?.data?.message ||
+            "Failed to load workflows."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadWorkflows();
+  }, []);
 
   return (
     <div>
-      <h1>FlowForge Dashboard</h1>
+      <div className="dashboard-header">
+        <div>
+          <h2 className="dashboard-title">
+            Your Workflows
+          </h2>
 
-      {user && (
-        <>
-          <p>
-            Welcome, {user.name}
+          <p className="dashboard-description">
+            Build and manage your automated workflows.
           </p>
+        </div>
 
-          <p>
-            {user.email}
-          </p>
+        <button
+          className="primary-button"
+          onClick={() => navigate("/dashboard/new")}
+        >
+          + New Workflow
+        </button>
+      </div>
 
-          <button onClick={handleLogout}>
-            Logout
-          </button>
-        </>
+      {loading && (
+        <p>Loading workflows...</p>
       )}
+
+      {error && (
+        <p>{error}</p>
+      )}
+
+      {!loading &&
+        !error &&
+        workflows.length === 0 && (
+          <div>
+            <h3>No workflows yet</h3>
+
+            <p>
+              Create your first workflow
+              to get started.
+            </p>
+          </div>
+        )}
+
+      {!loading &&
+        !error &&
+        workflows.length > 0 && (
+          <div className="workflow-grid">
+            {workflows.map((workflow) => (
+              <WorkflowCard
+                key={workflow._id}
+                workflow={workflow}
+              />
+            ))}
+          </div>
+        )}
     </div>
   );
 }

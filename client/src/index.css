@@ -18,6 +18,7 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+
   background: #0f1117;
   color: #f5f7fa;
 }
@@ -27,4 +28,337 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Dashboard Layout */
+
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  padding: 28px 16px;
+
+  background: #151922;
+  border-right: 1px solid #252a36;
+}
+
+.sidebar-logo {
+  padding: 0 12px 32px;
+}
+
+.sidebar-logo h2 {
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 11px 12px;
+
+  color: #9ba3b4;
+  text-decoration: none;
+
+  border-radius: 8px;
+
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.sidebar-link:hover {
+  background: #1e2430;
+  color: #f5f7fa;
+}
+
+.sidebar-link.active {
+  background: #252c3a;
+  color: #ffffff;
+}
+
+/* Main Area */
+
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-content {
+  padding: 32px;
+}
+
+/* Topbar */
+
+.topbar {
+  min-height: 88px;
+  padding: 20px 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid #252a36;
+  background: #0f1117;
+}
+
+.topbar-greeting {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.topbar-subtitle {
+  margin-top: 4px;
+
+  color: #8d95a5;
+  font-size: 14px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar-email {
+  color: #8d95a5;
+  font-size: 14px;
+}
+
+.logout-button {
+  padding: 9px 14px;
+
+  background: transparent;
+  color: #f5f7fa;
+
+  border: 1px solid #343b49;
+  border-radius: 7px;
+}
+
+.logout-button:hover {
+  background: #1e2430;
+}
+
+/* Dashboard */
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 28px;
+}
+
+.dashboard-title {
+  font-size: 28px;
+  letter-spacing: -0.6px;
+}
+
+.dashboard-description {
+  margin-top: 6px;
+
+  color: #8d95a5;
+  font-size: 14px;
+}
+
+.primary-button {
+  padding: 10px 16px;
+
+  background: #f5f7fa;
+  color: #101218;
+
+  border: none;
+  border-radius: 7px;
+
+  font-weight: 600;
+}
+
+.primary-button:hover {
+  opacity: 0.9;
+}
+
+/* Workflow Cards */
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(280px, 1fr));
+
+  gap: 18px;
+}
+
+.workflow-card {
+  padding: 20px;
+
+  background: #151922;
+  border: 1px solid #252a36;
+  border-radius: 10px;
+
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.workflow-card:hover {
+  border-color: #3a4353;
+  transform: translateY(-2px);
+}
+
+.workflow-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+.workflow-card-header h3 {
+  font-size: 17px;
+}
+
+.workflow-status {
+  padding: 4px 7px;
+
+  background: #252c3a;
+  color: #aeb7c8;
+
+  border-radius: 5px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.workflow-description {
+  margin-top: 14px;
+
+  color: #8d95a5;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.workflow-card-footer {
+  display: flex;
+  gap: 16px;
+
+  margin-top: 20px;
+  padding-top: 14px;
+
+  border-top: 1px solid #252a36;
+
+  color: #737c8e;
+  font-size: 12px;
+}
+
+/* Workflow Form */
+
+.workflow-form-page {
+  max-width: 720px;
+}
+
+.workflow-form-header {
+  margin-bottom: 28px;
+}
+
+.workflow-form {
+  padding: 24px;
+
+  background: #151922;
+  border: 1px solid #252a36;
+  border-radius: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  color: #dce1e9;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 11px 12px;
+
+  background: #0f1117;
+  color: #f5f7fa;
+
+  border: 1px solid #343b49;
+  border-radius: 7px;
+
+  outline: none;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #596579;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #596273;
+}
+
+.form-error {
+  margin-bottom: 18px;
+  padding: 12px;
+
+  background: #29191c;
+  color: #ff9da5;
+
+  border: 1px solid #51252a;
+  border-radius: 7px;
+
+  font-size: 14px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 28px;
+}
+
+.secondary-button {
+  padding: 10px 16px;
+
+  background: transparent;
+  color: #dce1e9;
+
+  border: 1px solid #343b49;
+  border-radius: 7px;
+}
+
+.secondary-button:hover {
+  background: #1e2430;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

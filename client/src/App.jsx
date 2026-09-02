@@ -8,6 +8,9 @@ import {
 import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
 import Dashboard from "./pages/dashboard.jsx";
+import NewWorkflow from "./pages/newWorkflow.jsx";
+
+import DashboardLayout from "./layouts/dashboard.layout.jsx";
 
 import { useAuth } from "./context/authContext.jsx";
 
@@ -58,8 +61,28 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DashboardLayout />
             </ProtectedRoute>
+          }
+        >
+          <Route
+            index
+            element={<Dashboard />}
+          />
+
+          <Route
+            path="new"
+            element={<NewWorkflow />}
+          />
+        </Route>
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
           }
         />
       </Routes>
