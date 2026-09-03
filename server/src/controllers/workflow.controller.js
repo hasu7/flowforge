@@ -7,31 +7,16 @@ import {
 
 export const createWorkflow = async (
   req,
-  res
+  res,
+  next
 ) => {
   try {
-    const {
-      name,
-      description
-    } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Workflow name is required"
-      });
-    }
-
     const workflow =
       await Workflow.create({
-        name: name.trim(),
-
+        name: req.body.name,
         description:
-          description?.trim() || "",
-
-        owner:
-          req.user._id
+          req.body.description || "",
+        owner: req.user._id
       });
 
     return res.status(201).json({
@@ -39,443 +24,283 @@ export const createWorkflow = async (
       workflow
     });
   } catch (error) {
-    console.error(
-      "Create workflow error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Failed to create workflow"
-    });
+    next(error);
   }
 };
 
-export const getWorkflows =
-  async (req, res) => {
-    try {
-      const workflows =
-        await Workflow.find({
-          owner: req.user._id
-        }).sort({
-          updatedAt: -1
-        });
-
-      return res.status(200).json({
-        success: true,
-        workflows
+export const getWorkflows = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const workflows =
+      await Workflow.find({
+        owner: req.user._id
+      }).sort({
+        updatedAt: -1
       });
-    } catch (error) {
-      console.error(
-        "Get workflows error:",
-        error
-      );
 
-      return res.status(500).json({
+    return res.json({
+      success: true,
+      workflows
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getWorkflow = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const workflow =
+      await Workflow.findOne({
+        _id: req.params.id,
+        owner: req.user._id
+      });
+
+    if (!workflow) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Failed to fetch workflows"
+        message: "Workflow not found."
       });
     }
-  };
 
-export const getWorkflow =
-  async (req, res) => {
-    try {
-      const workflow =
-        await Workflow.findOne({
-          _id: req.params.id,
+    return res.json({
+      success: true,
+      workflow
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-          owner:
-            req.user._id
-        });
-
-      if (!workflow) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Workflow not found"
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        workflow
+export const updateWorkflow = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const workflow =
+      await Workflow.findOne({
+        _id: req.params.id,
+        owner: req.user._id
       });
-    } catch (error) {
-      console.error(
-        "Get workflow error:",
-        error
-      );
 
-      return res.status(500).json({
+    if (!workflow) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Failed to fetch workflow"
+        message: "Workflow not found."
       });
     }
-  };
 
-export const updateWorkflow =
-  async (req, res) => {
-    try {
-      const {
-        name,
-        description,
-        nodes,
-        edges
-      } = req.body;
+    if (
+      req.body.name !== undefined
+    ) {
+      workflow.name =
+        req.body.name;
+    }
 
-      const workflow =
-        await Workflow.findOne({
-          _id: req.params.id,
+    if (
+      req.body.description !==
+      undefined
+    ) {
+      workflow.description =
+        req.body.description;
+    }
 
-          owner:
-            req.user._id
-        });
+    if (
+      req.body.nodes !== undefined
+    ) {
+      workflow.nodes =
+        req.body.nodes;
+    }
 
-      if (!workflow) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Workflow not found"
-        });
-      }
+    if (
+      req.body.edges !== undefined
+    ) {
+      workflow.edges =
+        req.body.edges;
+    }
 
-      if (name !== undefined) {
-        workflow.name =
-          name.trim();
-      }
+    workflow.version += 1;
 
-      if (
-        description !==
-        undefined
-      ) {
-        workflow.description =
-          description.trim();
-      }
+    await workflow.save();
 
-      if (nodes !== undefined) {
-        workflow.nodes =
-          nodes;
-      }
+    return res.json({
+      success: true,
+      workflow
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      if (edges !== undefined) {
-        workflow.edges =
-          edges;
-      }
-
-      workflow.version += 1;
-
-      await workflow.save();
-
-      return res.status(200).json({
-        success: true,
-        workflow
+export const deleteWorkflow = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const workflow =
+      await Workflow.findOneAndDelete({
+        _id: req.params.id,
+        owner: req.user._id
       });
-    } catch (error) {
-      console.error(
-        "Update workflow error:",
-        error
-      );
 
-      return res.status(500).json({
+    if (!workflow) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Failed to update workflow"
+        message: "Workflow not found."
       });
     }
-  };
 
-export const deleteWorkflow =
-  async (req, res) => {
-    try {
-      const workflow =
-        await Workflow.findOneAndDelete({
-          _id: req.params.id,
+    await WorkflowVersion.deleteMany({
+      workflow: workflow._id
+    });
 
-          owner:
-            req.user._id
-        });
+    return res.json({
+      success: true,
+      message:
+        "Workflow deleted successfully."
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      if (!workflow) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Workflow not found"
-        });
-      }
-
-      await WorkflowVersion.deleteMany({
-        workflow:
-          workflow._id,
-
-        owner:
-          req.user._id
+export const publishWorkflow = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const workflow =
+      await Workflow.findOne({
+        _id: req.params.id,
+        owner: req.user._id
       });
 
-      return res.status(200).json({
-        success: true,
-        message:
-          "Workflow deleted successfully"
-      });
-    } catch (error) {
-      console.error(
-        "Delete workflow error:",
-        error
-      );
-
-      return res.status(500).json({
+    if (!workflow) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Failed to delete workflow"
+        message: "Workflow not found."
       });
     }
-  };
 
-export const publishWorkflow =
-  async (req, res) => {
-    try {
-      const workflow =
-        await Workflow.findOne({
-          _id: req.params.id,
+    validateWorkflowGraph(
+      workflow.nodes || [],
+      workflow.edges || []
+    );
 
-          owner:
-            req.user._id
-        });
+    const nextPublishedVersion =
+      (workflow.publishedVersion ||
+        0) + 1;
 
-      if (!workflow) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Workflow not found"
-        });
-      }
-
-      const validationErrors =
-        validateWorkflowGraph(
-          workflow.nodes || [],
-          workflow.edges || []
-        );
-
-      if (
-        validationErrors.length > 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Workflow cannot be published.",
-          errors:
-            validationErrors
-        });
-      }
-
-      const nextVersion =
-        workflow.publishedVersion ===
-        null
-          ? 1
-          : workflow.publishedVersion + 1;
-
-      const existingVersion =
-        await WorkflowVersion.findOne({
-          workflow:
-            workflow._id,
-
-          version:
-            nextVersion
-        });
-
-      if (existingVersion) {
-        return res.status(409).json({
-          success: false,
-          message:
-            "This workflow version already exists."
-        });
-      }
-
-      const publishedVersion =
-        await WorkflowVersion.create({
-          workflow:
-            workflow._id,
-
-          owner:
-            req.user._id,
-
-          version:
-            nextVersion,
-
-          name:
-            workflow.name,
-
-          description:
-            workflow.description,
-
-          nodes:
-            workflow.nodes.map(
-              (node) => ({
-                id:
-                  node.id,
-
-                type:
-                  node.type,
-
-                position: {
-                  x:
-                    node.position.x,
-
-                  y:
-                    node.position.y
-                },
-
-                config:
-                  node.config || {}
-              })
-            ),
-
-          edges:
-            workflow.edges.map(
-              (edge) => ({
-                id:
-                  edge.id,
-
-                source:
-                  edge.source,
-
-                target:
-                  edge.target,
-
-                sourceHandle:
-                  edge.sourceHandle ||
-                  null,
-
-                targetHandle:
-                  edge.targetHandle ||
-                  null
-              })
-            ),
-
-          publishedAt:
-            new Date()
-        });
-
-      workflow.status =
-        "published";
-
-      workflow.publishedVersion =
-        nextVersion;
-
-      workflow.publishedAt =
-        publishedVersion.publishedAt;
-
-      await workflow.save();
-
-      return res.status(201).json({
-        success: true,
-
-        message:
-          `Workflow published as version ${nextVersion}.`,
-
-        workflow,
-
+    const publishedVersion =
+      await WorkflowVersion.create({
+        workflow: workflow._id,
+        owner: workflow.owner,
         version:
-          publishedVersion
+          nextPublishedVersion,
+        name: workflow.name,
+        description:
+          workflow.description,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        publishedAt: new Date()
       });
-    } catch (error) {
-      console.error(
-        "Publish workflow error:",
-        error
-      );
 
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to publish workflow"
-      });
-    }
-  };
+    workflow.status =
+      "published";
+
+    workflow.publishedVersion =
+      nextPublishedVersion;
+
+    workflow.publishedAt =
+      publishedVersion.publishedAt;
+
+    await workflow.save();
+
+    return res.json({
+      success: true,
+      message:
+        "Workflow published successfully.",
+      workflow,
+      publishedVersion
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getWorkflowVersions =
-  async (req, res) => {
+  async (
+    req,
+    res,
+    next
+  ) => {
     try {
       const workflow =
         await Workflow.findOne({
           _id: req.params.id,
-
-          owner:
-            req.user._id
+          owner: req.user._id
         });
 
       if (!workflow) {
         return res.status(404).json({
           success: false,
           message:
-            "Workflow not found"
+            "Workflow not found."
         });
       }
 
       const versions =
         await WorkflowVersion.find({
-          workflow:
-            workflow._id,
+          workflow: workflow._id
+        }).sort({
+          version: -1
+        });
 
-          owner:
-            req.user._id
-        })
-          .sort({
-            version: -1
-          })
-          .select(
-            "version name description publishedAt createdAt"
-          );
-
-      return res.status(200).json({
+      return res.json({
         success: true,
         versions
       });
     } catch (error) {
-      console.error(
-        "Get workflow versions error:",
-        error
-      );
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to fetch workflow versions"
-      });
+      next(error);
     }
   };
 
 export const getWorkflowVersion =
-  async (req, res) => {
+  async (
+    req,
+    res,
+    next
+  ) => {
     try {
       const workflow =
         await Workflow.findOne({
           _id: req.params.id,
-
-          owner:
-            req.user._id
+          owner: req.user._id
         });
 
       if (!workflow) {
         return res.status(404).json({
           success: false,
           message:
-            "Workflow not found"
+            "Workflow not found."
         });
       }
 
-      const versionNumber =
-        Number(
-          req.params.version
-        );
+      const version =
+        Number(req.params.version);
 
       if (
-        !Number.isInteger(
-          versionNumber
-        ) ||
-        versionNumber < 1
+        !Number.isInteger(version) ||
+        version < 1
       ) {
         return res.status(400).json({
           success: false,
@@ -484,19 +309,13 @@ export const getWorkflowVersion =
         });
       }
 
-      const version =
+      const workflowVersion =
         await WorkflowVersion.findOne({
-          workflow:
-            workflow._id,
-
-          owner:
-            req.user._id,
-
-          version:
-            versionNumber
+          workflow: workflow._id,
+          version
         });
 
-      if (!version) {
+      if (!workflowVersion) {
         return res.status(404).json({
           success: false,
           message:
@@ -504,20 +323,99 @@ export const getWorkflowVersion =
         });
       }
 
-      return res.status(200).json({
+      return res.json({
         success: true,
-        version
+        version:
+          workflowVersion
       });
     } catch (error) {
-      console.error(
-        "Get workflow version error:",
-        error
-      );
+      next(error);
+    }
+  };
 
-      return res.status(500).json({
-        success: false,
+export const restoreWorkflowVersion =
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const workflow =
+        await Workflow.findOne({
+          _id: req.params.id,
+          owner: req.user._id
+        });
+
+      if (!workflow) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Workflow not found."
+        });
+      }
+
+      const version =
+        Number(req.params.version);
+
+      if (
+        !Number.isInteger(version) ||
+        version < 1
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid workflow version."
+        });
+      }
+
+      const workflowVersion =
+        await WorkflowVersion.findOne({
+          workflow: workflow._id,
+          version
+        });
+
+      if (!workflowVersion) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Workflow version not found."
+        });
+      }
+
+      workflow.name =
+        workflowVersion.name;
+
+      workflow.description =
+        workflowVersion.description;
+
+      workflow.nodes =
+        workflowVersion.nodes;
+
+      workflow.edges =
+        workflowVersion.edges;
+
+      workflow.status =
+        "draft";
+
+      workflow.publishedVersion =
+        null;
+
+      workflow.publishedAt =
+        null;
+
+      workflow.version += 1;
+
+      await workflow.save();
+
+      return res.json({
+        success: true,
         message:
-          "Failed to fetch workflow version"
+          `Workflow restored from version ${version}.`,
+        workflow,
+        restoredFromVersion:
+          version
       });
+    } catch (error) {
+      next(error);
     }
   };

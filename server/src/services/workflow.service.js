@@ -86,7 +86,8 @@ export const getWorkflowVersion =
 
     return response.data;
   };
-  export const restoreWorkflowVersion =
+
+export const restoreWorkflowVersion =
   async (
     workflowId,
     version

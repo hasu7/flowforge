@@ -21,6 +21,22 @@ const getValueFromPath = (
 
   let current = input;
 
+  /*
+   * "data" is the public workflow variable
+   * that represents the current node input.
+   *
+   * Example:
+   *
+   * {{data.body.userId}}
+   *
+   * resolves to:
+   *
+   * input.body.userId
+   */
+  if (parts[0] === "data") {
+    parts.shift();
+  }
+
   for (const part of parts) {
     if (
       current === null ||
@@ -931,8 +947,7 @@ const executeHttpNode =
           !error?.response;
 
         const hasAttemptsLeft =
-          attempt <
-          maxAttempts;
+          attempt < maxAttempts;
 
         if (
           !shouldRetry ||

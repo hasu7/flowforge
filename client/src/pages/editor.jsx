@@ -38,6 +38,7 @@ import {
 import NodePalette from "../components/NodePalette.jsx";
 import FlowNode from "../components/FlowNode.jsx";
 import NodeConfigPanel from "../components/NodeConfigPanel.jsx";
+import VersionHistory from "../components/VersionHistory.jsx";
 
 const nodeTypes = {
   flowNode: FlowNode
@@ -88,10 +89,13 @@ function Editor() {
   const [runMessage, setRunMessage] =
     useState("");
 
-  useEffect(() => {
-    const loadWorkflow =
+  const loadWorkflow =
+    useCallback(
       async () => {
         try {
+          setLoading(true);
+          setError("");
+
           const response =
             await getWorkflow(id);
 
@@ -168,6 +172,14 @@ function Editor() {
           setEdges(
             loadedEdges
           );
+
+          setSelectedNodeId(
+            null
+          );
+
+          setSelectedEdgeId(
+            null
+          );
         } catch (error) {
           console.error(
             "Failed to load workflow:",
@@ -180,17 +192,20 @@ function Editor() {
               "Failed to load workflow."
           );
         } finally {
-          setLoading(
-            false
-          );
+          setLoading(false);
         }
-      };
+      },
+      [
+        id,
+        setNodes,
+        setEdges
+      ]
+    );
 
+  useEffect(() => {
     loadWorkflow();
   }, [
-    id,
-    setNodes,
-    setEdges
+    loadWorkflow
   ]);
 
   const onConnect =
@@ -687,6 +702,22 @@ function Editor() {
       }
     };
 
+  const handleWorkflowRestored =
+    async (restoredWorkflow) => {
+      setWorkflow(
+        restoredWorkflow
+      );
+
+      setSaveMessage("");
+      setPublishMessage("");
+      setRunMessage("");
+      setError(
+        "Workflow restored as a draft. Review it before publishing."
+      );
+
+      await loadWorkflow();
+    };
+
   const selectedNode =
     nodes.find(
       (node) =>
@@ -722,8 +753,13 @@ function Editor() {
   }
 
   return (
-    <div className="editor-page">
-
+    <div
+      className="editor-page"
+      style={{
+        minHeight:
+          "100vh"
+      }}
+    >
       <div className="editor-toolbar">
 
         <div>
@@ -845,7 +881,13 @@ function Editor() {
         </div>
       </div>
 
-      <div className="editor-workspace">
+      <div
+        className="editor-workspace"
+        style={{
+          display:
+            "flex"
+        }}
+      >
 
         <NodePalette
           onAddNode={
@@ -853,8 +895,12 @@ function Editor() {
           }
         />
 
-        <div className="editor-container">
-
+        <div
+          className="editor-container"
+          style={{
+            flex: 1
+          }}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -911,7 +957,6 @@ function Editor() {
 
             <MiniMap />
           </ReactFlow>
-
         </div>
 
         <NodeConfigPanel
@@ -941,8 +986,19 @@ function Editor() {
           }}
         />
 
-      </div>
+        <VersionHistory
+          workflowId={
+            id
+          }
+          currentPublishedVersion={
+            workflow.publishedVersion
+          }
+          onRestored={
+            handleWorkflowRestored
+          }
+        />
 
+      </div>
     </div>
   );
 }

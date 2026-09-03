@@ -8,7 +8,8 @@ import {
   deleteWorkflow,
   publishWorkflow,
   getWorkflowVersions,
-  getWorkflowVersion
+  getWorkflowVersion,
+  restoreWorkflowVersion
 } from "../controllers/workflow.controller.js";
 
 import protect from "../middlewares/auth.middleware.js";
@@ -46,6 +47,11 @@ router.get(
 router.get(
   "/:id/versions/:version",
   getWorkflowVersion
+);
+
+router.post(
+  "/:id/versions/:version/restore",
+  restoreWorkflowVersion
 );
 
 router.post(
