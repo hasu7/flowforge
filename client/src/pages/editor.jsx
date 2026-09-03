@@ -23,7 +23,8 @@ import "@xyflow/react/dist/style.css";
 
 import {
   getWorkflow,
-  updateWorkflow
+  updateWorkflow,
+  publishWorkflow
 } from "../services/workflow.services.js";
 
 import {
@@ -45,7 +46,8 @@ const nodeTypes = {
 function Editor() {
   const { id } = useParams();
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const [workflow, setWorkflow] =
     useState(null);
@@ -68,6 +70,9 @@ function Editor() {
   const [saving, setSaving] =
     useState(false);
 
+  const [publishing, setPublishing] =
+    useState(false);
+
   const [running, setRunning] =
     useState(false);
 
@@ -77,83 +82,109 @@ function Editor() {
   const [saveMessage, setSaveMessage] =
     useState("");
 
+  const [publishMessage, setPublishMessage] =
+    useState("");
+
   const [runMessage, setRunMessage] =
     useState("");
 
   useEffect(() => {
-    const loadWorkflow = async () => {
-      try {
-        const response =
-          await getWorkflow(id);
+    const loadWorkflow =
+      async () => {
+        try {
+          const response =
+            await getWorkflow(id);
 
-        const loadedWorkflow =
-          response.workflow;
+          const loadedWorkflow =
+            response.workflow;
 
-        setWorkflow(loadedWorkflow);
+          setWorkflow(
+            loadedWorkflow
+          );
 
-        const loadedNodes =
-          (loadedWorkflow.nodes || []).map(
-            (node) => ({
-              id: node.id,
+          const loadedNodes =
+            (
+              loadedWorkflow.nodes ||
+              []
+            ).map(
+              (node) => ({
+                id:
+                  node.id,
 
-              type: "flowNode",
+                type:
+                  "flowNode",
 
-              position: {
-                x:
-                  node.position?.x || 0,
+                position: {
+                  x:
+                    node.position?.x ||
+                    0,
 
-                y:
-                  node.position?.y || 0
-              },
+                  y:
+                    node.position?.y ||
+                    0
+                },
 
-              data: {
-                nodeType:
-                  node.config?.nodeType ||
-                  "trigger",
+                data: {
+                  nodeType:
+                    node.config?.nodeType ||
+                    "trigger",
 
-                config: {
-                  ...(node.config || {})
+                  config: {
+                    ...(node.config || {})
+                  }
                 }
-              }
-            })
+              })
+            );
+
+          setNodes(
+            loadedNodes
           );
 
-        setNodes(loadedNodes);
+          const loadedEdges =
+            (
+              loadedWorkflow.edges ||
+              []
+            ).map(
+              (edge) => ({
+                id:
+                  edge.id,
 
-        const loadedEdges =
-          (loadedWorkflow.edges || []).map(
-            (edge) => ({
-              id: edge.id,
+                source:
+                  edge.source,
 
-              source: edge.source,
+                target:
+                  edge.target,
 
-              target: edge.target,
+                sourceHandle:
+                  edge.sourceHandle ||
+                  undefined,
 
-              sourceHandle:
-                edge.sourceHandle ||
-                undefined,
+                targetHandle:
+                  edge.targetHandle ||
+                  undefined
+              })
+            );
 
-              targetHandle:
-                edge.targetHandle ||
-                undefined
-            })
+          setEdges(
+            loadedEdges
+          );
+        } catch (error) {
+          console.error(
+            "Failed to load workflow:",
+            error
           );
 
-        setEdges(loadedEdges);
-      } catch (error) {
-        console.error(
-          "Failed to load workflow:",
-          error
-        );
-
-        setError(
-          error.response?.data?.message ||
-            "Failed to load workflow."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+          setError(
+            error.response?.data
+              ?.message ||
+              "Failed to load workflow."
+          );
+        } finally {
+          setLoading(
+            false
+          );
+        }
+      };
 
     loadWorkflow();
   }, [
@@ -162,177 +193,219 @@ function Editor() {
     setEdges
   ]);
 
-  const onConnect = useCallback(
-    (connection) => {
-      setEdges((currentEdges) =>
-        addEdge(
-          connection,
-          currentEdges
-        )
-      );
+  const onConnect =
+    useCallback(
+      (connection) => {
+        setEdges(
+          (currentEdges) =>
+            addEdge(
+              connection,
+              currentEdges
+            )
+        );
 
-      setSaveMessage("");
-      setRunMessage("");
-      setError("");
-    },
-    [setEdges]
-  );
+        setSaveMessage("");
+        setPublishMessage("");
+        setRunMessage("");
+        setError("");
+      },
+      [setEdges]
+    );
 
-  const handleAddNode = useCallback(
-    (type) => {
-      const nodeId =
-        `${type}-${Date.now()}`;
+  const handleAddNode =
+    useCallback(
+      (type) => {
+        const nodeId =
+          `${type}-${Date.now()}`;
 
-      const newNode = {
-        id: nodeId,
+        const newNode = {
+          id:
+            nodeId,
 
-        type: "flowNode",
+          type:
+            "flowNode",
 
-        position: {
-          x:
-            250 +
-            Math.random() * 200,
+          position: {
+            x:
+              250 +
+              Math.random() *
+                200,
 
-          y:
-            100 +
-            Math.random() * 300
-        },
+            y:
+              100 +
+              Math.random() *
+                300
+          },
 
-        data: {
-          nodeType: type,
+          data: {
+            nodeType:
+              type,
 
-          config: {}
-        }
-      };
-
-      setNodes((currentNodes) => [
-        ...currentNodes,
-        newNode
-      ]);
-
-      setSelectedNodeId(nodeId);
-      setSelectedEdgeId(null);
-
-      setSaveMessage("");
-      setRunMessage("");
-      setError("");
-    },
-    [setNodes]
-  );
-
-  const handleNodeUpdate = useCallback(
-    (nodeId, updatedConfig) => {
-      setNodes((currentNodes) =>
-        currentNodes.map(
-          (currentNode) => {
-            if (
-              currentNode.id !==
-              nodeId
-            ) {
-              return currentNode;
-            }
-
-            return {
-              ...currentNode,
-
-              data: {
-                ...currentNode.data,
-
-                config: {
-                  ...updatedConfig
-                }
-              }
-            };
+            config: {}
           }
-        )
-      );
+        };
 
-      setSaveMessage("");
-      setRunMessage("");
-      setError("");
-    },
-    [setNodes]
-  );
+        setNodes(
+          (currentNodes) => [
+            ...currentNodes,
+            newNode
+          ]
+        );
+
+        setSelectedNodeId(
+          nodeId
+        );
+
+        setSelectedEdgeId(
+          null
+        );
+
+        setSaveMessage("");
+        setPublishMessage("");
+        setRunMessage("");
+        setError("");
+      },
+      [setNodes]
+    );
+
+  const handleNodeUpdate =
+    useCallback(
+      (
+        nodeId,
+        updatedConfig
+      ) => {
+        setNodes(
+          (currentNodes) =>
+            currentNodes.map(
+              (currentNode) => {
+                if (
+                  currentNode.id !==
+                  nodeId
+                ) {
+                  return currentNode;
+                }
+
+                return {
+                  ...currentNode,
+
+                  data: {
+                    ...currentNode.data,
+
+                    config: {
+                      ...updatedConfig
+                    }
+                  }
+                };
+              }
+            )
+        );
+
+        setSaveMessage("");
+        setPublishMessage("");
+        setRunMessage("");
+        setError("");
+      },
+      [setNodes]
+    );
 
   const handleDeleteSelected =
-    useCallback(() => {
-      if (selectedNodeId) {
-        setNodes((currentNodes) =>
-          currentNodes.filter(
-            (node) =>
-              node.id !==
-              selectedNodeId
-          )
-        );
+    useCallback(
+      () => {
+        if (
+          selectedNodeId
+        ) {
+          setNodes(
+            (currentNodes) =>
+              currentNodes.filter(
+                (node) =>
+                  node.id !==
+                  selectedNodeId
+              )
+          );
 
-        setEdges((currentEdges) =>
-          currentEdges.filter(
-            (edge) =>
-              edge.source !==
-                selectedNodeId &&
-              edge.target !==
-                selectedNodeId
-          )
-        );
+          setEdges(
+            (currentEdges) =>
+              currentEdges.filter(
+                (edge) =>
+                  edge.source !==
+                    selectedNodeId &&
+                  edge.target !==
+                    selectedNodeId
+              )
+          );
 
-        setSelectedNodeId(null);
+          setSelectedNodeId(
+            null
+          );
 
-        setSaveMessage("");
-        setRunMessage("");
-        setError("");
+          setSaveMessage("");
+          setPublishMessage("");
+          setRunMessage("");
+          setError("");
 
-        return;
-      }
+          return;
+        }
 
-      if (selectedEdgeId) {
-        setEdges((currentEdges) =>
-          currentEdges.filter(
-            (edge) =>
-              edge.id !==
-              selectedEdgeId
-          )
-        );
+        if (
+          selectedEdgeId
+        ) {
+          setEdges(
+            (currentEdges) =>
+              currentEdges.filter(
+                (edge) =>
+                  edge.id !==
+                  selectedEdgeId
+              )
+          );
 
-        setSelectedEdgeId(null);
+          setSelectedEdgeId(
+            null
+          );
 
-        setSaveMessage("");
-        setRunMessage("");
-        setError("");
-      }
-    }, [
-      selectedNodeId,
-      selectedEdgeId,
-      setNodes,
-      setEdges
-    ]);
+          setSaveMessage("");
+          setPublishMessage("");
+          setRunMessage("");
+          setError("");
+        }
+      },
+      [
+        selectedNodeId,
+        selectedEdgeId,
+        setNodes,
+        setEdges
+      ]
+    );
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      const target =
-        event.target;
+    const handleKeyDown =
+      (event) => {
+        const target =
+          event.target;
 
-      const isTyping =
-        target instanceof
-          HTMLInputElement ||
-        target instanceof
-          HTMLTextAreaElement ||
-        target instanceof
-          HTMLSelectElement ||
-        target.isContentEditable;
+        const isTyping =
+          target instanceof
+            HTMLInputElement ||
+          target instanceof
+            HTMLTextAreaElement ||
+          target instanceof
+            HTMLSelectElement ||
+          target.isContentEditable;
 
-      if (isTyping) {
-        return;
-      }
+        if (isTyping) {
+          return;
+        }
 
-      if (
-        event.key === "Delete" ||
-        event.key === "Backspace"
-      ) {
-        event.preventDefault();
+        if (
+          event.key ===
+            "Delete" ||
+          event.key ===
+            "Backspace"
+        ) {
+          event.preventDefault();
 
-        handleDeleteSelected();
-      }
-    };
+          handleDeleteSelected();
+        }
+      };
 
     window.addEventListener(
       "keydown",
@@ -350,99 +423,122 @@ function Editor() {
   ]);
 
   const buildWorkflowPayload =
-    useCallback(() => {
-      const nodesToSave =
-        nodes.map((node) => ({
-          id: node.id,
+    useCallback(
+      () => {
+        const nodesToSave =
+          nodes.map(
+            (node) => ({
+              id:
+                node.id,
 
-          type: node.type,
+              type:
+                node.type,
 
-          position: {
-            x: node.position.x,
+              position: {
+                x:
+                  node.position.x,
 
-            y: node.position.y
-          },
+                y:
+                  node.position.y
+              },
 
-          config: {
-            nodeType:
-              node.data?.nodeType ||
-              "trigger",
+              config: {
+                nodeType:
+                  node.data
+                    ?.nodeType ||
+                  "trigger",
 
-            ...(node.data?.config || {})
-          }
-        }));
+                ...(node.data
+                  ?.config || {})
+              }
+            })
+          );
 
-      const edgesToSave =
-        edges.map((edge) => ({
-          id: edge.id,
+        const edgesToSave =
+          edges.map(
+            (edge) => ({
+              id:
+                edge.id,
 
-          source: edge.source,
+              source:
+                edge.source,
 
-          target: edge.target,
+              target:
+                edge.target,
 
-          sourceHandle:
-            edge.sourceHandle ||
-            null,
+              sourceHandle:
+                edge.sourceHandle ||
+                null,
 
-          targetHandle:
-            edge.targetHandle ||
-            null
-        }));
+              targetHandle:
+                edge.targetHandle ||
+                null
+            })
+          );
 
-      return {
-        nodes: nodesToSave,
-        edges: edgesToSave
-      };
-    }, [
-      nodes,
-      edges
-    ]);
+        return {
+          nodes:
+            nodesToSave,
 
-  const handleSave = async () => {
-    setSaving(true);
+          edges:
+            edgesToSave
+        };
+      },
+      [
+        nodes,
+        edges
+      ]
+    );
 
-    setSaveMessage("");
-    setRunMessage("");
-    setError("");
+  const handleSave =
+    async () => {
+      setSaving(true);
 
-    try {
-      const workflowPayload =
-        buildWorkflowPayload();
+      setSaveMessage("");
+      setPublishMessage("");
+      setRunMessage("");
+      setError("");
 
-      const response =
-        await updateWorkflow(
-          id,
-          workflowPayload
+      try {
+        const workflowPayload =
+          buildWorkflowPayload();
+
+        const response =
+          await updateWorkflow(
+            id,
+            workflowPayload
+          );
+
+        setWorkflow(
+          response.workflow
         );
 
-      setWorkflow(
-        response.workflow
-      );
+        setSaveMessage(
+          "Workflow saved successfully."
+        );
+      } catch (error) {
+        console.error(
+          "Failed to save workflow:",
+          error
+        );
 
-      setSaveMessage(
-        "Workflow saved successfully."
-      );
-    } catch (error) {
-      console.error(
-        "Failed to save workflow:",
-        error
-      );
+        setError(
+          error.response?.data
+            ?.message ||
+            "Failed to save workflow."
+        );
+      } finally {
+        setSaving(false);
+      }
+    };
 
-      setError(
-        error.response?.data?.message ||
-          "Failed to save workflow."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRunWorkflow =
+  const handlePublish =
     async () => {
-      setRunning(true);
+      setPublishing(true);
 
-      setRunMessage("");
+      setPublishMessage("");
       setSaveMessage("");
+      setRunMessage("");
       setError("");
 
       const validationErrors =
@@ -452,10 +548,88 @@ function Editor() {
         );
 
       if (
-        validationErrors.length > 0
+        validationErrors.length >
+        0
       ) {
         setError(
-          validationErrors.join(" ")
+          validationErrors.join(
+            " "
+          )
+        );
+
+        setPublishing(false);
+
+        return;
+      }
+
+      try {
+        const workflowPayload =
+          buildWorkflowPayload();
+
+        const saveResponse =
+          await updateWorkflow(
+            id,
+            workflowPayload
+          );
+
+        setWorkflow(
+          saveResponse.workflow
+        );
+
+        const response =
+          await publishWorkflow(
+            id
+          );
+
+        setWorkflow(
+          response.workflow
+        );
+
+        setPublishMessage(
+          response.message ||
+            "Workflow published successfully."
+        );
+      } catch (error) {
+        console.error(
+          "Failed to publish workflow:",
+          error
+        );
+
+        setError(
+          error.response?.data
+            ?.message ||
+            "Failed to publish workflow."
+        );
+      } finally {
+        setPublishing(
+          false
+        );
+      }
+    };
+
+  const handleRunWorkflow =
+    async () => {
+      setRunning(true);
+
+      setRunMessage("");
+      setSaveMessage("");
+      setPublishMessage("");
+      setError("");
+
+      const validationErrors =
+        validateWorkflow(
+          nodes,
+          edges
+        );
+
+      if (
+        validationErrors.length >
+        0
+      ) {
+        setError(
+          validationErrors.join(
+            " "
+          )
         );
 
         setRunning(false);
@@ -503,7 +677,8 @@ function Editor() {
         );
 
         setError(
-          error.response?.data?.message ||
+          error.response?.data
+            ?.message ||
             error.message ||
             "Failed to run workflow."
         );
@@ -527,7 +702,10 @@ function Editor() {
     );
   }
 
-  if (error && !workflow) {
+  if (
+    error &&
+    !workflow
+  ) {
     return (
       <p>
         {error}
@@ -557,6 +735,22 @@ function Editor() {
             {workflow.description ||
               "Build your automation visually."}
           </p>
+
+          <div className="workflow-version-info">
+
+            <span>
+              Draft revision:{" "}
+              {workflow.version}
+            </span>
+
+            <span>
+              Published:{" "}
+              {workflow.publishedVersion
+                ? `v${workflow.publishedVersion}`
+                : "Not published"}
+            </span>
+
+          </div>
         </div>
 
         <div className="editor-actions">
@@ -564,6 +758,12 @@ function Editor() {
           {saveMessage && (
             <span className="save-message">
               {saveMessage}
+            </span>
+          )}
+
+          {publishMessage && (
+            <span className="save-message">
+              {publishMessage}
             </span>
           )}
 
@@ -583,7 +783,9 @@ function Editor() {
             type="button"
             className="secondary-button"
             onClick={() =>
-              navigate("/dashboard")
+              navigate(
+                "/dashboard"
+              )
             }
           >
             Back
@@ -592,9 +794,13 @@ function Editor() {
           <button
             type="button"
             className="secondary-button"
-            onClick={handleSave}
+            onClick={
+              handleSave
+            }
             disabled={
-              saving || running
+              saving ||
+              running ||
+              publishing
             }
           >
             {saving
@@ -604,12 +810,31 @@ function Editor() {
 
           <button
             type="button"
+            className="secondary-button"
+            onClick={
+              handlePublish
+            }
+            disabled={
+              saving ||
+              running ||
+              publishing
+            }
+          >
+            {publishing
+              ? "Publishing..."
+              : "Publish"}
+          </button>
+
+          <button
+            type="button"
             className="primary-button"
             onClick={
               handleRunWorkflow
             }
             disabled={
-              running || saving
+              running ||
+              saving ||
+              publishing
             }
           >
             {running
@@ -633,15 +858,22 @@ function Editor() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            nodeTypes={nodeTypes}
+            nodeTypes={
+              nodeTypes
+            }
             onNodesChange={
               onNodesChange
             }
             onEdgesChange={
               onEdgesChange
             }
-            onConnect={onConnect}
-            onNodeClick={(event, node) => {
+            onConnect={
+              onConnect
+            }
+            onNodeClick={(
+              event,
+              node
+            ) => {
               setSelectedNodeId(
                 node.id
               );
@@ -650,7 +882,10 @@ function Editor() {
                 null
               );
             }}
-            onEdgeClick={(event, edge) => {
+            onEdgeClick={(
+              event,
+              edge
+            ) => {
               setSelectedEdgeId(
                 edge.id
               );
@@ -680,10 +915,16 @@ function Editor() {
         </div>
 
         <NodeConfigPanel
-          node={selectedNode}
+          node={
+            selectedNode
+          }
 
-          onUpdate={(updatedConfig) => {
-            if (!selectedNodeId) {
+          onUpdate={(
+            updatedConfig
+          ) => {
+            if (
+              !selectedNodeId
+            ) {
               return;
             }
 

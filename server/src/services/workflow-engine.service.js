@@ -1,77 +1,362 @@
 import Execution from "../models/Execution.js";
 
 const getNodeType = (node) => {
-  return node.config?.nodeType || node.type;
-};
-
-const getNodeMap = (nodes) => {
-  return new Map(
-    nodes.map((node) => [
-      node.id,
-      node
-    ])
+  return (
+    node.config?.nodeType ||
+    node.type ||
+    "trigger"
   );
 };
 
-const validateWorkflowGraph = (
-  nodes,
-  edges
+const getValueFromPath = (
+  input,
+  path
 ) => {
-  if (!nodes.length) {
-    throw new Error(
-      "Workflow must contain at least one node"
-    );
+  if (!path) {
+    return undefined;
   }
 
-  const nodeIds = new Set();
+  const parts =
+    path.split(".").filter(Boolean);
 
-  for (const node of nodes) {
-    if (!node.id) {
+  let current = input;
+
+  for (const part of parts) {
+    if (
+      current === null ||
+      current === undefined
+    ) {
+      return undefined;
+    }
+
+    if (
+      typeof current !== "object"
+    ) {
+      return undefined;
+    }
+
+    current = current[part];
+  }
+
+  return current;
+};
+
+const resolveTemplate = (
+  template,
+  input
+) => {
+  if (
+    typeof template !== "string"
+  ) {
+    return template;
+  }
+
+  const fullTemplateMatch =
+    template.match(
+      /^{{\s*([^}]+)\s*}}$/
+    );
+
+  if (fullTemplateMatch) {
+    const path =
+      fullTemplateMatch[1].trim();
+
+    const value =
+      getValueFromPath(
+        input,
+        path
+      );
+
+    if (
+      value === undefined
+    ) {
       throw new Error(
-        "Every workflow node must have an ID"
+        `Unable to resolve workflow variable: ${path}`
       );
     }
 
-    if (nodeIds.has(node.id)) {
-      throw new Error(
+    return value;
+  }
+
+  return template.replace(
+    /{{\s*([^}]+)\s*}}/g,
+    (match, path) => {
+      const value =
+        getValueFromPath(
+          input,
+          path.trim()
+        );
+
+      if (
+        value === undefined
+      ) {
+        throw new Error(
+          `Unable to resolve workflow variable: ${path.trim()}`
+        );
+      }
+
+      if (
+        value === null
+      ) {
+        return "";
+      }
+
+      if (
+        typeof value === "object"
+      ) {
+        return JSON.stringify(
+          value
+        );
+      }
+
+      return String(value);
+    }
+  );
+};
+
+const resolveJsonValue = (
+  value,
+  input
+) => {
+  if (
+    typeof value === "string"
+  ) {
+    const fullTemplateMatch =
+      value.match(
+        /^{{\s*([^}]+)\s*}}$/
+      );
+
+    if (fullTemplateMatch) {
+      const path =
+        fullTemplateMatch[1].trim();
+
+      const resolved =
+        getValueFromPath(
+          input,
+          path
+        );
+
+      if (
+        resolved === undefined
+      ) {
+        throw new Error(
+          `Unable to resolve workflow variable: ${path}`
+        );
+      }
+
+      return resolved;
+    }
+
+    return resolveTemplate(
+      value,
+      input
+    );
+  }
+
+  if (
+    Array.isArray(value)
+  ) {
+    return value.map(
+      (item) =>
+        resolveJsonValue(
+          item,
+          input
+        )
+    );
+  }
+
+  if (
+    value !== null &&
+    typeof value === "object"
+  ) {
+    const result = {};
+
+    for (const [
+      key,
+      nestedValue
+    ] of Object.entries(value)) {
+      result[key] =
+        resolveJsonValue(
+          nestedValue,
+          input
+        );
+    }
+
+    return result;
+  }
+
+  return value;
+};
+
+const resolveJsonBody = (
+  body,
+  input
+) => {
+  if (
+    body === undefined ||
+    body === null ||
+    body === ""
+  ) {
+    return undefined;
+  }
+
+  let parsedBody;
+
+  try {
+    parsedBody =
+      typeof body === "string"
+        ? JSON.parse(body)
+        : body;
+  } catch {
+    throw new Error(
+      "HTTP request body must contain valid JSON."
+    );
+  }
+
+  return resolveJsonValue(
+    parsedBody,
+    input
+  );
+};
+
+const resolveHeaders = (
+  headers,
+  input
+) => {
+  if (
+    headers === undefined ||
+    headers === null ||
+    headers === ""
+  ) {
+    return {};
+  }
+
+  let parsedHeaders;
+
+  try {
+    parsedHeaders =
+      typeof headers === "string"
+        ? JSON.parse(headers)
+        : headers;
+  } catch {
+    throw new Error(
+      "HTTP headers must contain valid JSON."
+    );
+  }
+
+  if (
+    typeof parsedHeaders !==
+      "object" ||
+    Array.isArray(parsedHeaders)
+  ) {
+    throw new Error(
+      "HTTP headers must be a JSON object."
+    );
+  }
+
+  const resolvedHeaders = {};
+
+  for (const [
+    key,
+    value
+  ] of Object.entries(
+    parsedHeaders
+  )) {
+    const resolvedValue =
+      resolveTemplate(
+        String(value),
+        input
+      );
+
+    resolvedHeaders[key] =
+      String(resolvedValue);
+  }
+
+  return resolvedHeaders;
+};
+
+export const validateWorkflowGraph = (
+  nodes,
+  edges
+) => {
+  const errors = [];
+
+  if (!nodes.length) {
+    errors.push(
+      "Workflow must contain at least one node."
+    );
+
+    return errors;
+  }
+
+  const nodeMap = new Map();
+
+  for (const node of nodes) {
+    if (!node.id) {
+      errors.push(
+        "Every node must have an ID."
+      );
+
+      continue;
+    }
+
+    if (nodeMap.has(node.id)) {
+      errors.push(
         `Duplicate node ID: ${node.id}`
       );
     }
 
-    nodeIds.add(node.id);
+    nodeMap.set(
+      node.id,
+      node
+    );
   }
 
   const edgeIds = new Set();
 
   for (const edge of edges) {
     if (!edge.id) {
-      throw new Error(
-        "Every workflow connection must have an ID"
+      errors.push(
+        "Every connection must have an ID."
       );
-    }
-
-    if (edgeIds.has(edge.id)) {
-      throw new Error(
+    } else if (
+      edgeIds.has(edge.id)
+    ) {
+      errors.push(
         `Duplicate edge ID: ${edge.id}`
       );
     }
 
     edgeIds.add(edge.id);
 
+    if (!edge.source || !edge.target) {
+      errors.push(
+        "Every connection must have a source and target."
+      );
+
+      continue;
+    }
+
     if (
-      !nodeIds.has(edge.source) ||
-      !nodeIds.has(edge.target)
+      !nodeMap.has(edge.source)
     ) {
-      throw new Error(
-        `Connection ${edge.id} points to a missing node`
+      errors.push(
+        `Connection ${edge.id} points from a missing node.`
+      );
+    }
+
+    if (
+      !nodeMap.has(edge.target)
+    ) {
+      errors.push(
+        `Connection ${edge.id} points to a missing node.`
       );
     }
 
     if (
       edge.source === edge.target
     ) {
-      throw new Error(
-        `Node ${edge.source} cannot connect to itself`
+      errors.push(
+        `Node ${edge.source} cannot connect to itself.`
       );
     }
   }
@@ -83,15 +368,19 @@ const validateWorkflowGraph = (
         "trigger"
     );
 
-  if (triggerNodes.length === 0) {
-    throw new Error(
-      "Workflow must contain a trigger node"
+  if (
+    triggerNodes.length === 0
+  ) {
+    errors.push(
+      "Workflow must contain a trigger node."
     );
   }
 
-  if (triggerNodes.length > 1) {
-    throw new Error(
-      "Workflow can only contain one trigger node"
+  if (
+    triggerNodes.length > 1
+  ) {
+    errors.push(
+      "Workflow can only contain one trigger node."
     );
   }
 
@@ -102,10 +391,7 @@ const validateWorkflowGraph = (
         "condition"
     );
 
-  for (
-    const conditionNode of
-      conditionNodes
-  ) {
+  for (const conditionNode of conditionNodes) {
     const outgoingEdges =
       edges.filter(
         (edge) =>
@@ -127,107 +413,128 @@ const validateWorkflowGraph = (
           "false"
       );
 
-    if (trueEdges.length !== 1) {
-      throw new Error(
-        `Condition node ${conditionNode.id} must have exactly one true branch`
+    if (
+      trueEdges.length !== 1
+    ) {
+      errors.push(
+        `Condition node ${conditionNode.id} needs exactly one true branch.`
       );
     }
 
-    if (falseEdges.length !== 1) {
-      throw new Error(
-        `Condition node ${conditionNode.id} must have exactly one false branch`
+    if (
+      falseEdges.length !== 1
+    ) {
+      errors.push(
+        `Condition node ${conditionNode.id} needs exactly one false branch.`
       );
     }
-  }
-
-  const outgoingEdgeMap =
-    new Map();
-
-  for (const node of nodes) {
-    outgoingEdgeMap.set(
-      node.id,
-      []
-    );
-  }
-
-  for (const edge of edges) {
-    const outgoing =
-      outgoingEdgeMap.get(
-        edge.source
-      );
-
-    outgoing.push(edge);
   }
 
   for (const node of nodes) {
     const nodeType =
       getNodeType(node);
 
-    const outgoingEdges =
-      outgoingEdgeMap.get(
-        node.id
-      );
-
     if (
-      nodeType !== "condition" &&
-      outgoingEdges.length > 1
-    ) {
-      throw new Error(
-        `Node ${node.id} has multiple outgoing paths`
-      );
-    }
-  }
-
-  const triggerNode =
-    triggerNodes[0];
-
-  const reachableNodes =
-    new Set();
-
-  const queue = [
-    triggerNode.id
-  ];
-
-  while (queue.length > 0) {
-    const currentNodeId =
-      queue.shift();
-
-    if (
-      reachableNodes.has(
-        currentNodeId
-      )
+      nodeType === "condition"
     ) {
       continue;
     }
 
-    reachableNodes.add(
-      currentNodeId
-    );
-
     const outgoingEdges =
-      outgoingEdgeMap.get(
-        currentNodeId
-      ) || [];
+      edges.filter(
+        (edge) =>
+          edge.source ===
+          node.id
+      );
 
-    for (
-      const edge of
-        outgoingEdges
+    if (
+      outgoingEdges.length > 1
     ) {
-      queue.push(
-        edge.target
+      errors.push(
+        `Node ${node.id} has multiple outgoing paths.`
       );
     }
   }
 
+  if (
+    triggerNodes.length === 1
+  ) {
+    const reachable =
+      new Set();
+
+    const queue = [
+      triggerNodes[0].id
+    ];
+
+    while (queue.length) {
+      const currentId =
+        queue.shift();
+
+      if (
+        reachable.has(
+          currentId
+        )
+      ) {
+        continue;
+      }
+
+      reachable.add(
+        currentId
+      );
+
+      const outgoingEdges =
+        edges.filter(
+          (edge) =>
+            edge.source ===
+            currentId
+        );
+
+      for (const edge of outgoingEdges) {
+        if (
+          nodeMap.has(
+            edge.target
+          )
+        ) {
+          queue.push(
+            edge.target
+          );
+        }
+      }
+    }
+
+    for (const node of nodes) {
+      if (
+        !reachable.has(node.id)
+      ) {
+        errors.push(
+          `Node ${node.id} is not reachable from the trigger.`
+        );
+      }
+    }
+  }
+
+  const adjacency =
+    new Map();
+
   for (const node of nodes) {
+    adjacency.set(
+      node.id,
+      []
+    );
+  }
+
+  for (const edge of edges) {
     if (
-      !reachableNodes.has(
-        node.id
+      adjacency.has(
+        edge.source
+      ) &&
+      nodeMap.has(
+        edge.target
       )
     ) {
-      throw new Error(
-        `Node ${node.id} is not reachable from the trigger`
-      );
+      adjacency
+        .get(edge.source)
+        .push(edge.target);
     }
   }
 
@@ -237,9 +544,7 @@ const validateWorkflowGraph = (
   const visited =
     new Set();
 
-  const detectCycle = (
-    nodeId
-  ) => {
+  const visit = (nodeId) => {
     if (
       visiting.has(nodeId)
     ) {
@@ -254,303 +559,105 @@ const validateWorkflowGraph = (
 
     visiting.add(nodeId);
 
-    const outgoingEdges =
-      outgoingEdgeMap.get(
-        nodeId
-      ) || [];
+    const children =
+      adjacency.get(nodeId) ||
+      [];
 
-    for (
-      const edge of
-        outgoingEdges
-    ) {
-      if (
-        detectCycle(
-          edge.target
-        )
-      ) {
+    for (const child of children) {
+      if (visit(child)) {
         return true;
       }
     }
 
-    visiting.delete(
-      nodeId
-    );
-
-    visited.add(
-      nodeId
-    );
+    visiting.delete(nodeId);
+    visited.add(nodeId);
 
     return false;
   };
 
-  if (
-    detectCycle(
-      triggerNode.id
-    )
-  ) {
-    throw new Error(
-      "Workflow contains a cycle"
-    );
-  }
-};
-
-const getNextEdges = (
-  currentNode,
-  edges,
-  branchHandle = null
-) => {
-  return edges.filter((edge) => {
+  for (const node of nodes) {
     if (
-      edge.source !==
-      currentNode.id
+      visit(node.id)
     ) {
-      return false;
-    }
-
-    if (
-      branchHandle === null
-    ) {
-      return true;
-    }
-
-    return (
-      edge.sourceHandle ===
-      branchHandle
-    );
-  });
-};
-
-const getValueFromPath = (
-  object,
-  path
-) => {
-  if (!path) {
-    return undefined;
-  }
-
-  return path
-    .split(".")
-    .reduce(
-      (
-        currentValue,
-        key
-      ) => {
-        if (
-          currentValue === null ||
-          currentValue === undefined
-        ) {
-          return undefined;
-        }
-
-        return currentValue[key];
-      },
-      object
-    );
-};
-
-const resolveTemplate = (
-  value,
-  input
-) => {
-  if (
-    typeof value !==
-    "string"
-  ) {
-    return value;
-  }
-
-  return value.replace(
-    /\{\{\s*([^}]+?)\s*\}\}/g,
-    (
-      match,
-      path
-    ) => {
-      const trimmedPath =
-        path.trim();
-
-      const resolvedValue =
-        getValueFromPath(
-          input,
-          trimmedPath
-        );
-
-      if (
-        resolvedValue ===
-          undefined ||
-        resolvedValue ===
-          null
-      ) {
-        throw new Error(
-          `Unable to resolve workflow variable: ${trimmedPath}`
-        );
-      }
-
-      if (
-        typeof resolvedValue ===
-        "object"
-      ) {
-        return JSON.stringify(
-          resolvedValue
-        );
-      }
-
-      return String(
-        resolvedValue
+      errors.push(
+        "Workflow cannot contain cycles."
       );
+
+      break;
     }
-  );
+  }
+
+  return errors;
 };
 
-const executeTriggerNode = async (
-  node
-) => {
-  return {
-    triggered: true,
-
-    triggerType:
-      node.config?.triggerType ||
-      "manual",
-
-    timestamp:
-      new Date().toISOString()
-  };
-};
-
-const executeHttpNode = async (
+const evaluateCondition = (
   node,
   input
 ) => {
-  const method =
-    node.config?.method ||
-    "GET";
+  const config =
+    node.config || {};
 
-  const configuredUrl =
-    node.config?.url;
+  const field =
+    config.field || "";
 
-  if (!configuredUrl) {
-    throw new Error(
-      "HTTP Request node requires a URL"
-    );
-  }
+  const operator =
+    config.operator ||
+    "equals";
 
-  const url =
-    resolveTemplate(
-      configuredUrl,
-      input
-    );
+  const expectedValue =
+    config.value;
 
-  let parsedUrl;
-
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    throw new Error(
-      "HTTP Request node contains an invalid URL"
-    );
-  }
-
-  if (
-    parsedUrl.protocol !== "http:" &&
-    parsedUrl.protocol !== "https:"
-  ) {
-    throw new Error(
-      "HTTP Request URL must use http or https"
-    );
-  }
-
-  const requestOptions = {
-    method
-  };
-
-  if (
-    method !== "GET" &&
-    method !== "HEAD"
-  ) {
-    requestOptions.headers = {
-      "Content-Type":
-        "application/json"
-    };
-
-    requestOptions.body =
-      JSON.stringify(
-        input ?? {}
-      );
-  }
-
-  const response =
-    await fetch(
-      parsedUrl,
-      requestOptions
+  const actualValue =
+    getValueFromPath(
+      input,
+      field
     );
 
-  const contentType =
-    response.headers.get(
-      "content-type"
-    ) || "";
-
-  let responseData;
-
-  if (
-    contentType.includes(
-      "application/json"
-    )
-  ) {
-    responseData =
-      await response.json();
-  } else {
-    responseData =
-      await response.text();
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `HTTP request failed with status ${response.status}`
-    );
-  }
-
-  return {
-    status: response.status,
-
-    statusText:
-      response.statusText,
-
-    data: responseData
-  };
-};
-
-const compareValues = (
-  actual,
-  expected,
-  operator
-) => {
   switch (operator) {
     case "equals":
       return (
-        String(actual) ===
-        String(expected)
+        String(actualValue) ===
+        String(expectedValue)
       );
 
     case "not_equals":
       return (
-        String(actual) !==
-        String(expected)
+        String(actualValue) !==
+        String(expectedValue)
       );
 
     case "contains":
-      return String(actual).includes(
-        String(expected)
-      );
+      if (
+        typeof actualValue ===
+        "string"
+      ) {
+        return actualValue.includes(
+          String(expectedValue)
+        );
+      }
+
+      if (
+        Array.isArray(
+          actualValue
+        )
+      ) {
+        return actualValue.includes(
+          expectedValue
+        );
+      }
+
+      return false;
 
     case "greater_than":
       return (
-        Number(actual) >
-        Number(expected)
+        Number(actualValue) >
+        Number(expectedValue)
       );
 
     case "less_than":
       return (
-        Number(actual) <
-        Number(expected)
+        Number(actualValue) <
+        Number(expectedValue)
       );
 
     default:
@@ -560,412 +667,691 @@ const compareValues = (
   }
 };
 
-const executeConditionNode = async (
-  node,
-  input
+const isRetryableStatus = (
+  status
 ) => {
-  const configuredField =
-    node.config?.field;
-
-  const operator =
-    node.config?.operator ||
-    "equals";
-
-  const configuredValue =
-    node.config?.value;
-
-  if (!configuredField) {
-    throw new Error(
-      "Condition node requires a field"
-    );
-  }
-
-  if (
-    configuredValue ===
-      undefined ||
-    configuredValue === null
-  ) {
-    throw new Error(
-      "Condition node requires a value"
-    );
-  }
-
-  const field =
-    resolveTemplate(
-      configuredField,
-      input
-    );
-
-  const expectedValue =
-    resolveTemplate(
-      String(
-        configuredValue
-      ),
-      input
-    );
-
-  const actualValue =
-    getValueFromPath(
-      input,
-      field
-    );
-
-  const result =
-    compareValues(
-      actualValue,
-      expectedValue,
-      operator
-    );
-
-  return {
-    field,
-
-    actualValue,
-
-    operator,
-
-    expectedValue,
-
-    result
-  };
-};
-
-const executeNode = async (
-  node,
-  input
-) => {
-  const nodeType =
-    getNodeType(node);
-
-  if (
-    nodeType === "trigger"
-  ) {
-    return executeTriggerNode(
-      node
-    );
-  }
-
-  if (
-    nodeType === "http"
-  ) {
-    return executeHttpNode(
-      node,
-      input
-    );
-  }
-
-  if (
-    nodeType === "condition"
-  ) {
-    return executeConditionNode(
-      node,
-      input
-    );
-  }
-
-  throw new Error(
-    `Unsupported node type: ${nodeType}`
+  return (
+    status === 408 ||
+    status === 429 ||
+    status >= 500
   );
 };
 
-const markNodeSkipped = (
-  execution,
-  nodeId
+const sleep = (
+  milliseconds
 ) => {
-  const executionNode =
-    execution.nodes.find(
-      (node) =>
-        node.nodeId ===
-        nodeId
-    );
+  return new Promise(
+    (resolve) => {
+      setTimeout(
+        resolve,
+        milliseconds
+      );
+    }
+  );
+};
 
-  if (
-    executionNode &&
-    executionNode.status ===
-      "pending"
-  ) {
-    executionNode.status =
-      "skipped";
-  }
+const executeSingleHttpRequest =
+  async ({
+    method,
+    url,
+    headers,
+    body,
+    timeoutMs
+  }) => {
+    const controller =
+      new AbortController();
+
+    const timeout =
+      setTimeout(
+        () => {
+          controller.abort();
+        },
+        timeoutMs
+      );
+
+    try {
+      const response =
+        await fetch(url, {
+          method,
+          headers,
+          body:
+            body === undefined
+              ? undefined
+              : JSON.stringify(body),
+          signal:
+            controller.signal
+        });
+
+      const contentType =
+        response.headers.get(
+          "content-type"
+        ) || "";
+
+      let responseData;
+
+      if (
+        contentType.includes(
+          "application/json"
+        )
+      ) {
+        responseData =
+          await response.json();
+      } else {
+        responseData =
+          await response.text();
+      }
+
+      if (!response.ok) {
+        const error =
+          new Error(
+            `HTTP request failed with status ${response.status}`
+          );
+
+        error.retryable =
+          isRetryableStatus(
+            response.status
+          );
+
+        error.status =
+          response.status;
+
+        throw error;
+      }
+
+      const responseHeaders =
+        {};
+
+      for (const [
+        key,
+        value
+      ] of response.headers.entries()) {
+        responseHeaders[key] =
+          value;
+      }
+
+      return {
+        status:
+          response.status,
+
+        statusText:
+          response.statusText,
+
+        data:
+          responseData,
+
+        headers:
+          responseHeaders
+      };
+    } catch (error) {
+      if (
+        error?.name ===
+        "AbortError"
+      ) {
+        const timeoutError =
+          new Error(
+            `HTTP request timed out after ${timeoutMs}ms.`
+          );
+
+        timeoutError.retryable =
+          true;
+
+        timeoutError.code =
+          "HTTP_TIMEOUT";
+
+        throw timeoutError;
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(
+        timeout
+      );
+    }
+  };
+
+const executeHttpNode =
+  async (
+    node,
+    input
+  ) => {
+    const config =
+      node.config || {};
+
+    const method =
+      String(
+        config.method ||
+          "GET"
+      ).toUpperCase();
+
+    const rawUrl =
+      config.url || "";
+
+    if (!rawUrl) {
+      throw new Error(
+        "HTTP request URL is required."
+      );
+    }
+
+    const url =
+      resolveTemplate(
+        rawUrl,
+        input
+      );
+
+    let timeoutMs =
+      Number(
+        config.timeoutMs
+      );
+
+    if (
+      !Number.isFinite(
+        timeoutMs
+      ) ||
+      timeoutMs <= 0
+    ) {
+      timeoutMs = 10000;
+    }
+
+    timeoutMs =
+      Math.min(
+        timeoutMs,
+        120000
+      );
+
+    let retries =
+      Number(
+        config.retries
+      );
+
+    if (
+      !Number.isFinite(
+        retries
+      ) ||
+      retries < 0
+    ) {
+      retries = 0;
+    }
+
+    retries =
+      Math.min(
+        Math.floor(retries),
+        5
+      );
+
+    const headers =
+      resolveHeaders(
+        config.headers,
+        input
+      );
+
+    const showRequestBody =
+      method !== "GET" &&
+      method !== "HEAD" &&
+      method !== "DELETE";
+
+    const body =
+      showRequestBody
+        ? resolveJsonBody(
+            config.body,
+            input
+          )
+        : undefined;
+
+    let lastError =
+      null;
+
+    const maxAttempts =
+      retries + 1;
+
+    for (
+      let attempt = 1;
+      attempt <= maxAttempts;
+      attempt += 1
+    ) {
+      try {
+        const output =
+          await executeSingleHttpRequest({
+            method,
+            url,
+            headers,
+            body,
+            timeoutMs
+          });
+
+        return {
+          ...output,
+          attempts: attempt
+        };
+      } catch (error) {
+        lastError =
+          error;
+
+        const shouldRetry =
+          error?.retryable === true ||
+          !error?.response;
+
+        const hasAttemptsLeft =
+          attempt <
+          maxAttempts;
+
+        if (
+          !shouldRetry ||
+          !hasAttemptsLeft
+        ) {
+          throw error;
+        }
+
+        const delay =
+          Math.min(
+            1000 *
+              2 **
+                (attempt - 1),
+            5000
+          );
+
+        await sleep(
+          delay
+        );
+      }
+    }
+
+    throw (
+      lastError ||
+      new Error(
+        "HTTP request failed."
+      )
+    );
+  };
+
+const createExecutionNodes = (
+  nodes
+) => {
+  return nodes.map(
+    (node) => ({
+      nodeId:
+        node.id,
+
+      nodeType:
+        getNodeType(node),
+
+      order:
+        null,
+
+      status:
+        "pending",
+
+      startedAt:
+        null,
+
+      finishedAt:
+        null,
+
+      input:
+        null,
+
+      output:
+        null,
+
+      error:
+        null
+    })
+  );
 };
 
 export const executeWorkflow =
   async ({
     workflow,
-    userId
+    userId,
+    triggerInput = {},
+    triggerType = "manual"
   }) => {
-    const startedAt =
-      new Date();
-
     const nodes =
       workflow.nodes || [];
 
     const edges =
       workflow.edges || [];
 
-    validateWorkflowGraph(
-      nodes,
-      edges
-    );
+    const validationErrors =
+      validateWorkflowGraph(
+        nodes,
+        edges
+      );
+
+    if (
+      validationErrors.length
+    ) {
+      const error =
+        new Error(
+          validationErrors.join(" ")
+        );
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
+    const triggerNode =
+      nodes.find(
+        (node) =>
+          getNodeType(node) ===
+          "trigger"
+      );
 
     const nodeMap =
-      getNodeMap(nodes);
-
-    const executionNodes =
-      nodes.map((node) => ({
-        nodeId: node.id,
-
-        nodeType:
-          getNodeType(node),
-
-        status: "pending"
-      }));
+      new Map(
+        nodes.map(
+          (node) => [
+            node.id,
+            node
+          ]
+        )
+      );
 
     const execution =
       await Execution.create({
         workflow:
           workflow._id,
 
-        user: userId,
+        user:
+          userId,
 
-        status: "running",
+        status:
+          "running",
 
-        trigger: "manual",
+        trigger:
+          triggerType,
 
-        startedAt,
+        startedAt:
+          new Date(),
 
-        nodes: executionNodes
+        nodes:
+          createExecutionNodes(
+            nodes
+          )
       });
 
+    const executionNodeMap =
+      new Map(
+        execution.nodes.map(
+          (node) => [
+            node.nodeId,
+            node
+          ]
+        )
+      );
+
+    let currentNode =
+      triggerNode;
+
+    let currentInput =
+      triggerInput;
+
+    let finalOutput =
+      triggerInput;
+
+    let executionOrder =
+      0;
+
     try {
-      const triggerNode =
-        nodes.find(
-          (node) =>
-            getNodeType(node) ===
-            "trigger"
-        );
-
-      let currentNode =
-        triggerNode;
-
-      let currentInput =
-        null;
-
-      const visitedNodes =
-        new Set();
-
       while (currentNode) {
-        if (
-          visitedNodes.has(
+        const executionNode =
+          executionNodeMap.get(
             currentNode.id
-          )
+          );
+
+        if (
+          !executionNode
         ) {
           throw new Error(
-            "Workflow contains a cycle"
+            `Execution node not found: ${currentNode.id}`
           );
         }
 
-        visitedNodes.add(
-          currentNode.id
-        );
+        executionOrder += 1;
 
-        const executionNode =
-          execution.nodes.find(
-            (node) =>
-              node.nodeId ===
-              currentNode.id
-          );
-
-        const nodeStartedAt =
-          new Date();
+        executionNode.order =
+          executionOrder;
 
         executionNode.status =
           "running";
 
         executionNode.startedAt =
-          nodeStartedAt;
+          new Date();
 
         executionNode.input =
           currentInput;
 
+        executionNode.markModified(
+          "input"
+        );
+
         await execution.save();
 
-        let output;
-
         try {
-          output =
-            await executeNode(
-              currentNode,
-              currentInput
+          const nodeType =
+            getNodeType(
+              currentNode
             );
-        } catch (
-          nodeError
-        ) {
-          const nodeFinishedAt =
+
+          let output;
+
+          if (
+            nodeType ===
+            "trigger"
+          ) {
+            output =
+              triggerInput;
+          } else if (
+            nodeType ===
+            "http"
+          ) {
+            output =
+              await executeHttpNode(
+                currentNode,
+                currentInput
+              );
+          } else if (
+            nodeType ===
+            "condition"
+          ) {
+            const result =
+              evaluateCondition(
+                currentNode,
+                currentInput
+              );
+
+            output = {
+              result
+            };
+          } else {
+            throw new Error(
+              `Unsupported workflow node type: ${nodeType}`
+            );
+          }
+
+          executionNode.status =
+            "success";
+
+          executionNode.finishedAt =
             new Date();
 
+          executionNode.output =
+            output;
+
+          executionNode.markModified(
+            "input"
+          );
+
+          executionNode.markModified(
+            "output"
+          );
+
+          await execution.save();
+
+          finalOutput =
+            output;
+
+          if (
+            nodeType ===
+            "condition"
+          ) {
+            const outgoingEdges =
+              edges.filter(
+                (edge) =>
+                  edge.source ===
+                  currentNode.id
+              );
+
+            const trueEdge =
+              outgoingEdges.find(
+                (edge) =>
+                  edge.sourceHandle ===
+                  "true"
+              );
+
+            const falseEdge =
+              outgoingEdges.find(
+                (edge) =>
+                  edge.sourceHandle ===
+                  "false"
+              );
+
+            const result =
+              Boolean(
+                output.result
+              );
+
+            const selectedEdge =
+              result
+                ? trueEdge
+                : falseEdge;
+
+            const skippedEdge =
+              result
+                ? falseEdge
+                : trueEdge;
+
+            if (
+              skippedEdge
+            ) {
+              const skippedNode =
+                executionNodeMap.get(
+                  skippedEdge.target
+                );
+
+              if (
+                skippedNode &&
+                skippedNode.status ===
+                  "pending"
+              ) {
+                skippedNode.status =
+                  "skipped";
+
+                skippedNode.finishedAt =
+                  new Date();
+
+                skippedNode.error =
+                  "Branch was not selected.";
+              }
+            }
+
+            if (
+              !selectedEdge
+            ) {
+              currentNode =
+                null;
+
+              continue;
+            }
+
+            currentNode =
+              nodeMap.get(
+                selectedEdge.target
+              );
+
+            currentInput =
+              output;
+
+            continue;
+          }
+
+          const outgoingEdge =
+            edges.find(
+              (edge) =>
+                edge.source ===
+                currentNode.id
+            );
+
+          if (
+            !outgoingEdge
+          ) {
+            currentNode =
+              null;
+
+            continue;
+          }
+
+          currentNode =
+            nodeMap.get(
+              outgoingEdge.target
+            );
+
+          currentInput =
+            output;
+        } catch (nodeError) {
           executionNode.status =
             "failed";
 
           executionNode.finishedAt =
-            nodeFinishedAt;
+            new Date();
 
           executionNode.error =
-            nodeError.message;
+            nodeError.message ||
+            "Node execution failed.";
 
-          execution.status =
-            "failed";
-
-          execution.finishedAt =
-            nodeFinishedAt;
-
-          execution.durationMs =
-            nodeFinishedAt.getTime() -
-            startedAt.getTime();
-
-          execution.error =
-            nodeError.message;
+          executionNode.markModified(
+            "input"
+          );
 
           await execution.save();
 
-          return execution;
-        }
-
-        const nodeFinishedAt =
-          new Date();
-
-        executionNode.status =
-          "success";
-
-        executionNode.finishedAt =
-          nodeFinishedAt;
-
-        executionNode.output =
-          output;
-
-        await execution.save();
-
-        currentInput =
-          output;
-
-        const nodeType =
-          getNodeType(
-            currentNode
-          );
-
-        let nextEdges;
-
-        if (
-          nodeType ===
-          "condition"
-        ) {
-          const branch =
-            output.result
-              ? "true"
-              : "false";
-
-          const allOutgoingEdges =
-            getNextEdges(
-              currentNode,
-              edges
-            );
-
-          const selectedEdges =
-            getNextEdges(
-              currentNode,
-              edges,
-              branch
-            );
-
-          for (
-            const edge of
-              allOutgoingEdges
-          ) {
-            if (
-              edge.sourceHandle !==
-              branch
-            ) {
-              markNodeSkipped(
-                execution,
-                edge.target
-              );
-            }
-          }
-
-          nextEdges =
-            selectedEdges;
-        } else {
-          nextEdges =
-            getNextEdges(
-              currentNode,
-              edges
-            );
-        }
-
-        if (
-          nextEdges.length === 0
-        ) {
-          currentNode =
-            null;
-
-          continue;
-        }
-
-        if (
-          nextEdges.length > 1
-        ) {
-          throw new Error(
-            `Node ${currentNode.id} has multiple outgoing paths`
-          );
-        }
-
-        currentNode =
-          nodeMap.get(
-            nextEdges[0].target
-          );
-
-        if (!currentNode) {
-          throw new Error(
-            "Workflow points to a missing node"
-          );
+          throw nodeError;
         }
       }
-
-      const finishedAt =
-        new Date();
 
       execution.status =
         "success";
 
       execution.finishedAt =
-        finishedAt;
+        new Date();
 
       execution.durationMs =
-        finishedAt.getTime() -
-        startedAt.getTime();
+        execution.finishedAt.getTime() -
+        execution.startedAt.getTime();
+
+      execution.error =
+        null;
 
       await execution.save();
 
       return execution;
     } catch (error) {
-      const finishedAt =
-        new Date();
-
       execution.status =
         "failed";
 
       execution.finishedAt =
-        finishedAt;
+        new Date();
 
       execution.durationMs =
-        finishedAt.getTime() -
-        startedAt.getTime();
+        execution.finishedAt.getTime() -
+        execution.startedAt.getTime();
 
       execution.error =
-        error.message;
+        error.message ||
+        "Workflow execution failed.";
 
       await execution.save();
 
-      throw error;
+      return execution;
     }
   };

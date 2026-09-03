@@ -109,6 +109,16 @@ const workflowSchema = new mongoose.Schema(
     version: {
       type: Number,
       default: 1
+    },
+
+    publishedVersion: {
+      type: Number,
+      default: null
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null
     }
   },
   {

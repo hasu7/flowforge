@@ -1,44 +1,88 @@
 import api from "./api.js";
 
 export const getWorkflows = async () => {
-  const response = await api.get("/workflows");
+  const response =
+    await api.get(
+      "/workflows"
+    );
 
   return response.data;
 };
 
-export const createWorkflow = async (workflowData) => {
-  const response = await api.post(
-    "/workflows",
+export const createWorkflow =
+  async (workflowData) => {
+    const response =
+      await api.post(
+        "/workflows",
+        workflowData
+      );
+
+    return response.data;
+  };
+
+export const getWorkflow =
+  async (workflowId) => {
+    const response =
+      await api.get(
+        `/workflows/${workflowId}`
+      );
+
+    return response.data;
+  };
+
+export const updateWorkflow =
+  async (
+    workflowId,
     workflowData
-  );
+  ) => {
+    const response =
+      await api.patch(
+        `/workflows/${workflowId}`,
+        workflowData
+      );
 
-  return response.data;
-};
+    return response.data;
+  };
 
-export const getWorkflow = async (workflowId) => {
-  const response = await api.get(
-    `/workflows/${workflowId}`
-  );
+export const deleteWorkflow =
+  async (workflowId) => {
+    const response =
+      await api.delete(
+        `/workflows/${workflowId}`
+      );
 
-  return response.data;
-};
+    return response.data;
+  };
 
-export const updateWorkflow = async (
-  workflowId,
-  workflowData
-) => {
-  const response = await api.patch(
-    `/workflows/${workflowId}`,
-    workflowData
-  );
+export const publishWorkflow =
+  async (workflowId) => {
+    const response =
+      await api.post(
+        `/workflows/${workflowId}/publish`
+      );
 
-  return response.data;
-};
+    return response.data;
+  };
 
-export const deleteWorkflow = async (workflowId) => {
-  const response = await api.delete(
-    `/workflows/${workflowId}`
-  );
+export const getWorkflowVersions =
+  async (workflowId) => {
+    const response =
+      await api.get(
+        `/workflows/${workflowId}/versions`
+      );
 
-  return response.data;
-};
+    return response.data;
+  };
+
+export const getWorkflowVersion =
+  async (
+    workflowId,
+    version
+  ) => {
+    const response =
+      await api.get(
+        `/workflows/${workflowId}/versions/${version}`
+      );
+
+    return response.data;
+  };

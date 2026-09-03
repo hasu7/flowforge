@@ -1125,3 +1125,53 @@ button {
   font-size: 10px;
   line-height: 1.4;
 }
+
+.node-config-panel {
+  overflow-y: auto;
+}
+
+.node-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-field input,
+.config-field select,
+.config-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.config-field textarea {
+  resize: vertical;
+}
+
+.config-disabled {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f1f3f5;
+  color: #697386;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.workflow-version-info {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  color: #697386;
+  font-size: 11px;
+}
+
+.workflow-version-info span {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f1f3f5;
+}

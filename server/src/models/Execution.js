@@ -13,6 +13,11 @@ const executionNodeSchema =
         required: true
       },
 
+      order: {
+        type: Number,
+        default: null
+      },
+
       status: {
         type: String,
         enum: [

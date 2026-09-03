@@ -5,10 +5,14 @@ import {
   getWorkflows,
   getWorkflow,
   updateWorkflow,
-  deleteWorkflow
+  deleteWorkflow,
+  publishWorkflow,
+  getWorkflowVersions,
+  getWorkflowVersion
 } from "../controllers/workflow.controller.js";
 
 import protect from "../middlewares/auth.middleware.js";
+
 import validate from "../middlewares/validation.middleware.js";
 
 import {
@@ -16,26 +20,55 @@ import {
   updateWorkflowSchema
 } from "../validation/workflow.validation.js";
 
-const router = express.Router();
+const router =
+  express.Router();
 
 router.use(protect);
 
 router.post(
   "/",
-  validate(createWorkflowSchema),
+  validate(
+    createWorkflowSchema
+  ),
   createWorkflow
 );
 
-router.get("/", getWorkflows);
+router.get(
+  "/",
+  getWorkflows
+);
 
-router.get("/:id", getWorkflow);
+router.get(
+  "/:id/versions",
+  getWorkflowVersions
+);
+
+router.get(
+  "/:id/versions/:version",
+  getWorkflowVersion
+);
+
+router.post(
+  "/:id/publish",
+  publishWorkflow
+);
+
+router.get(
+  "/:id",
+  getWorkflow
+);
 
 router.patch(
   "/:id",
-  validate(updateWorkflowSchema),
+  validate(
+    updateWorkflowSchema
+  ),
   updateWorkflow
 );
 
-router.delete("/:id", deleteWorkflow);
+router.delete(
+  "/:id",
+  deleteWorkflow
+);
 
 export default router;

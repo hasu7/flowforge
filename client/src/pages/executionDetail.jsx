@@ -32,6 +32,21 @@ function formatDate(dateString) {
   ).toLocaleString();
 }
 
+function formatExecutionData(data) {
+  if (
+    data === null ||
+    data === undefined
+  ) {
+    return "No data";
+  }
+
+  return JSON.stringify(
+    data,
+    null,
+    2
+  );
+}
+
 function getNodeTitle(nodeType) {
   if (nodeType === "trigger") {
     return "Trigger";
@@ -73,10 +88,14 @@ function getNodeDuration(node) {
   }
 
   const start =
-    new Date(node.startedAt).getTime();
+    new Date(
+      node.startedAt
+    ).getTime();
 
   const finish =
-    new Date(node.finishedAt).getTime();
+    new Date(
+      node.finishedAt
+    ).getTime();
 
   return finish - start;
 }
@@ -160,10 +179,38 @@ function ExecutionDetail() {
     );
   }
 
+  const orderedNodes =
+    [...(execution.nodes || [])].sort(
+      (a, b) => {
+        const orderA =
+          a.order === null ||
+          a.order === undefined
+            ? Number.POSITIVE_INFINITY
+            : a.order;
+
+        const orderB =
+          b.order === null ||
+          b.order === undefined
+            ? Number.POSITIVE_INFINITY
+            : b.order;
+
+        if (
+          orderA === orderB
+        ) {
+          return 0;
+        }
+
+        return orderA - orderB;
+      }
+    );
+
   return (
     <div className="execution-detail-page">
+
       <div className="execution-detail-header">
+
         <div>
+
           <button
             type="button"
             className="back-button"
@@ -182,8 +229,10 @@ function ExecutionDetail() {
           </h2>
 
           <p className="dashboard-description">
-            Execution ID: {execution._id}
+            Execution ID:{" "}
+            {execution._id}
           </p>
+
         </div>
 
         <span
@@ -193,10 +242,13 @@ function ExecutionDetail() {
         >
           {execution.status}
         </span>
+
       </div>
 
       <div className="execution-summary">
+
         <div className="execution-summary-item">
+
           <span className="execution-summary-label">
             Status
           </span>
@@ -204,9 +256,11 @@ function ExecutionDetail() {
           <strong>
             {execution.status}
           </strong>
+
         </div>
 
         <div className="execution-summary-item">
+
           <span className="execution-summary-label">
             Duration
           </span>
@@ -216,9 +270,11 @@ function ExecutionDetail() {
               execution.durationMs
             )}
           </strong>
+
         </div>
 
         <div className="execution-summary-item">
+
           <span className="execution-summary-label">
             Trigger
           </span>
@@ -226,9 +282,11 @@ function ExecutionDetail() {
           <strong>
             {execution.trigger}
           </strong>
+
         </div>
 
         <div className="execution-summary-item">
+
           <span className="execution-summary-label">
             Started
           </span>
@@ -238,11 +296,14 @@ function ExecutionDetail() {
               execution.startedAt
             )}
           </strong>
+
         </div>
+
       </div>
 
       {execution.error && (
         <div className="execution-error">
+
           <div className="execution-error-title">
             Execution failed
           </div>
@@ -250,12 +311,16 @@ function ExecutionDetail() {
           <p>
             {execution.error}
           </p>
+
         </div>
       )}
 
       <div className="execution-nodes-section">
+
         <div className="execution-section-header">
+
           <div>
+
             <h3>
               Node Execution
             </h3>
@@ -263,30 +328,47 @@ function ExecutionDetail() {
             <p>
               Detailed results from each workflow node.
             </p>
+
           </div>
 
           <span>
-            {execution.nodes?.length || 0} nodes
+            {orderedNodes.length} nodes
           </span>
+
         </div>
 
         <div className="execution-node-list">
-          {execution.nodes?.map(
+
+          {orderedNodes.map(
             (node, index) => {
               const nodeDuration =
-                getNodeDuration(node);
+                getNodeDuration(
+                  node
+                );
+
+              const hasInput =
+                node.input !== null &&
+                node.input !== undefined;
+
+              const hasOutput =
+                node.output !== null &&
+                node.output !== undefined;
 
               return (
                 <div
                   key={node.nodeId}
                   className="execution-node-card"
                 >
+
                   <div className="execution-node-top">
+
                     <div className="execution-node-number">
-                      {index + 1}
+                      {node.order ??
+                        index + 1}
                     </div>
 
                     <div className="execution-node-info">
+
                       <h4>
                         {getNodeTitle(
                           node.nodeType
@@ -296,6 +378,7 @@ function ExecutionDetail() {
                       <span>
                         {node.nodeId}
                       </span>
+
                     </div>
 
                     <div
@@ -305,9 +388,11 @@ function ExecutionDetail() {
                     >
                       {node.status}
                     </div>
+
                   </div>
 
                   <div className="execution-node-meta">
+
                     <span>
                       Duration:{" "}
                       {nodeDuration !== null
@@ -323,6 +408,7 @@ function ExecutionDetail() {
                         node.startedAt
                       )}
                     </span>
+
                   </div>
 
                   {node.error && (
@@ -333,8 +419,14 @@ function ExecutionDetail() {
 
                   {node.nodeType ===
                     "condition" &&
-                    node.output && (
+                    hasOutput &&
+                    node.output &&
+                    typeof node.output ===
+                      "object" &&
+                    "result" in
+                      node.output && (
                       <div className="condition-result">
+
                         <span>
                           Condition result
                         </span>
@@ -344,48 +436,59 @@ function ExecutionDetail() {
                             ? "TRUE"
                             : "FALSE"}
                         </strong>
+
                       </div>
                     )}
 
-                  {node.output !== null &&
-                    node.output !== undefined && (
-                      <details className="execution-data">
-                        <summary>
-                          View output
-                        </summary>
+                  <div className="execution-data-section">
 
-                        <pre>
-                          {JSON.stringify(
-                            node.output,
-                            null,
-                            2
-                          )}
-                        </pre>
-                      </details>
-                    )}
+                    <div className="execution-data-grid">
 
-                  {node.input !== null &&
-                    node.input !== undefined && (
                       <details className="execution-data">
+
                         <summary>
                           View input
                         </summary>
 
                         <pre>
-                          {JSON.stringify(
-                            node.input,
-                            null,
-                            2
-                          )}
+                          {hasInput
+                            ? formatExecutionData(
+                                node.input
+                              )
+                            : "No input data"}
                         </pre>
+
                       </details>
-                    )}
+
+                      <details className="execution-data">
+
+                        <summary>
+                          View output
+                        </summary>
+
+                        <pre>
+                          {hasOutput
+                            ? formatExecutionData(
+                                node.output
+                              )
+                            : "No output data"}
+                        </pre>
+
+                      </details>
+
+                    </div>
+
+                  </div>
+
                 </div>
               );
             }
           )}
+
         </div>
+
       </div>
+
     </div>
   );
 }
