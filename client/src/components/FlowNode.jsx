@@ -20,6 +20,12 @@ const nodeConfig = {
     icon: "◇",
     title: "Condition",
     description: "Check a condition"
+  },
+
+  schedule: {
+    icon: "◷",
+    title: "Schedule",
+    description: "Run on a schedule"
   }
 };
 
@@ -31,12 +37,13 @@ function FlowNode({ data }) {
   return (
     <div className="flow-node">
 
-      {data?.nodeType !== "trigger" && (
-        <Handle
-          type="target"
-          position={Position.Left}
-        />
-      )}
+      {data?.nodeType !== "trigger" &&
+        data?.nodeType !== "schedule" && (
+          <Handle
+            type="target"
+            position={Position.Left}
+          />
+        )}
 
       <div className="flow-node-header">
 

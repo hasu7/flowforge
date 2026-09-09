@@ -60,6 +60,23 @@ function NodePalette({ onAddNode }) {
             </small>
           </span>
         </button>
+
+        <button
+          className="node-palette-item"
+          onClick={() => onAddNode("schedule")}
+        >
+          <span className="node-icon">
+            ◷
+          </span>
+
+          <span>
+            <strong>Schedule</strong>
+
+            <small>
+              Run on a schedule
+            </small>
+          </span>
+        </button>
       </div>
     </aside>
   );
