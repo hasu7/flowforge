@@ -314,7 +314,7 @@ function formatDate(dateValue) {
     }
   );
 }
-
+  
 function getNodeLabel(node) {
   const nodeType =
     node?.config?.nodeType ||
