@@ -21,6 +21,8 @@ import {
 
 import "@xyflow/react/dist/style.css";
 
+import api from "../services/api.js";
+
 import {
   getWorkflow,
   getScheduleStatus,
@@ -97,6 +99,30 @@ function Editor() {
 
   const [scheduleStatusLoading, setScheduleStatusLoading] =
     useState(false);
+
+  const [webhookTestSecret, setWebhookTestSecret] =
+    useState("");
+
+  const [webhookTestBody, setWebhookTestBody] =
+    useState(
+      JSON.stringify(
+        {
+          message:
+            "hello FlowForge"
+        },
+        null,
+        2
+      )
+    );
+
+  const [webhookTesting, setWebhookTesting] =
+    useState(false);
+
+  const [webhookTestResponse, setWebhookTestResponse] =
+    useState(null);
+
+  const [webhookTestError, setWebhookTestError] =
+    useState("");
 
   const loadScheduleStatus =
     useCallback(
@@ -223,6 +249,14 @@ function Editor() {
           setSelectedEdgeId(
             null
           );
+
+          setWebhookTestResponse(
+            null
+          );
+
+          setWebhookTestError(
+            ""
+          );
         } catch (error) {
           console.error(
             "Failed to load workflow:",
@@ -290,6 +324,7 @@ function Editor() {
 
     return () => {
       cancelled = true;
+
       clearInterval(
         interval
       );
@@ -409,8 +444,24 @@ function Editor() {
         setPublishMessage("");
         setRunMessage("");
         setError("");
+
+        if (
+          nodeId ===
+          selectedNodeId
+        ) {
+          setWebhookTestResponse(
+            null
+          );
+
+          setWebhookTestError(
+            ""
+          );
+        }
       },
-      [setNodes]
+      [
+        setNodes,
+        selectedNodeId
+      ]
     );
 
   const handleDeleteSelected =
@@ -447,6 +498,14 @@ function Editor() {
           setPublishMessage("");
           setRunMessage("");
           setError("");
+
+          setWebhookTestResponse(
+            null
+          );
+
+          setWebhookTestError(
+            ""
+          );
 
           return;
         }
@@ -788,6 +847,181 @@ function Editor() {
       }
     };
 
+  const handleWebhookTest =
+    async () => {
+      setWebhookTesting(true);
+
+      setWebhookTestResponse(
+        null
+      );
+
+      setWebhookTestError(
+        ""
+      );
+
+      try {
+        if (
+          !selectedNode ||
+          selectedNode.data?.nodeType !==
+            "trigger" ||
+          selectedNode.data?.config
+            ?.triggerType !==
+            "webhook"
+        ) {
+          throw new Error(
+            "Select a webhook trigger first."
+          );
+        }
+
+        const config =
+          selectedNode.data
+            ?.config || {};
+
+        const webhookPath =
+          typeof config.webhookPath ===
+            "string"
+            ? config.webhookPath
+                .trim()
+                .replace(/^\/+/, "")
+                .replace(/\/+$/, "")
+            : "";
+
+        if (!webhookPath) {
+          throw new Error(
+            "Webhook path is required."
+          );
+        }
+
+        const webhookMethod =
+          (
+            config.webhookMethod ||
+            "POST"
+          ).toUpperCase();
+
+        const baseUrl =
+          api.defaults.baseURL
+            ? api.defaults.baseURL.replace(
+                /\/$/,
+                ""
+              )
+            : "";
+
+        const webhookUrl =
+          `${baseUrl}/webhooks/${webhookPath}`;
+
+        let parsedBody = {};
+
+        if (
+          webhookTestBody.trim()
+        ) {
+          try {
+            parsedBody =
+              JSON.parse(
+                webhookTestBody
+              );
+          } catch {
+            throw new Error(
+              "Request body must contain valid JSON."
+            );
+          }
+        }
+
+        const headers = {};
+
+        if (
+          webhookMethod !== "GET"
+        ) {
+          headers[
+            "Content-Type"
+          ] =
+            "application/json";
+        }
+
+        const secret =
+          webhookTestSecret ||
+          config.webhookSecret ||
+          "";
+
+        if (secret) {
+          headers[
+            "x-webhook-secret"
+          ] = secret;
+        }
+
+        const requestOptions = {
+          method:
+            webhookMethod,
+
+          headers
+        };
+
+        if (
+          webhookMethod !== "GET"
+        ) {
+          requestOptions.body =
+            JSON.stringify(
+              parsedBody
+            );
+        }
+
+        const response =
+          await fetch(
+            webhookUrl,
+            requestOptions
+          );
+
+        const responseText =
+          await response.text();
+
+        let responseData =
+          responseText;
+
+        try {
+          responseData =
+            responseText
+              ? JSON.parse(
+                  responseText
+                )
+              : null;
+        } catch {
+          responseData =
+            responseText;
+        }
+
+        setWebhookTestResponse({
+          status:
+            response.status,
+
+          statusText:
+            response.statusText,
+
+          ok:
+            response.ok,
+
+          data:
+            responseData
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Webhook returned ${response.status} ${response.statusText}.`
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Webhook test failed:",
+          error
+        );
+
+        setWebhookTestError(
+          error.message ||
+          "Webhook test failed."
+        );
+      } finally {
+        setWebhookTesting(false);
+      }
+    };
+
   const handleWorkflowRestored =
     async (
       restoredWorkflow
@@ -814,6 +1048,38 @@ function Editor() {
         node.id ===
         selectedNodeId
     ) || null;
+
+  const selectedNodeIsWebhook =
+    selectedNode?.data?.nodeType ===
+      "trigger" &&
+    selectedNode?.data?.config
+      ?.triggerType ===
+      "webhook";
+
+  const normalizedWebhookPath =
+    selectedNodeIsWebhook &&
+    typeof selectedNode.data
+      ?.config?.webhookPath ===
+      "string"
+      ? selectedNode.data.config
+          .webhookPath
+          .trim()
+          .replace(/^\/+/, "")
+          .replace(/\/+$/, "")
+      : "";
+
+  const webhookBaseUrl =
+    api.defaults.baseURL
+      ? api.defaults.baseURL.replace(
+          /\/$/,
+          ""
+        )
+      : "";
+
+  const selectedWebhookUrl =
+    normalizedWebhookPath
+      ? `${webhookBaseUrl}/webhooks/${normalizedWebhookPath}`
+      : "";
 
   if (loading) {
     return (
@@ -1038,6 +1304,14 @@ function Editor() {
               setSelectedEdgeId(
                 null
               );
+
+              setWebhookTestResponse(
+                null
+              );
+
+              setWebhookTestError(
+                ""
+              );
             }}
             fitView
           >
@@ -1049,52 +1323,277 @@ function Editor() {
           </ReactFlow>
         </div>
 
-        <NodeConfigPanel
-          key={
-            selectedNode?.id ||
-            "empty"
-          }
-          node={
-            selectedNode
-          }
-          scheduleStatus={
-            scheduleStatus
-          }
-          scheduleStatusLoading={
-            scheduleStatusLoading
-          }
-          onUpdate={(
-            updatedConfig
-          ) => {
-            if (
-              !selectedNodeId
-            ) {
-              return;
+        <div
+          style={{
+            width: "360px",
+            minWidth: "360px",
+            maxHeight: "100vh",
+            overflowY: "auto"
+          }}
+        >
+          <NodeConfigPanel
+            key={
+              selectedNode?.id ||
+              "empty"
             }
-
-            handleNodeUpdate(
-              selectedNodeId,
+            node={
+              selectedNode
+            }
+            scheduleStatus={
+              scheduleStatus
+            }
+            scheduleStatusLoading={
+              scheduleStatusLoading
+            }
+            onUpdate={(
               updatedConfig
-            );
-          }}
-          onClose={() => {
-            setSelectedNodeId(
-              null
-            );
-          }}
-        />
+            ) => {
+              if (
+                !selectedNodeId
+              ) {
+                return;
+              }
 
-        <VersionHistory
-          workflowId={
-            id
-          }
-          currentPublishedVersion={
-            workflow.publishedVersion
-          }
-          onRestored={
-            handleWorkflowRestored
-          }
-        />
+              handleNodeUpdate(
+                selectedNodeId,
+                updatedConfig
+              );
+            }}
+            onClose={() => {
+              setSelectedNodeId(
+                null
+              );
+            }}
+          />
+
+          {selectedNodeIsWebhook && (
+            <div
+              className="node-config-panel"
+              style={{
+                marginTop: "12px"
+              }}
+            >
+              <div className="node-config-header">
+                <div>
+                  <p className="node-config-label">
+                    Testing
+                  </p>
+
+                  <h3>
+                    Test Webhook
+                  </h3>
+                </div>
+              </div>
+
+              <div className="node-config-section">
+
+                <div className="config-field">
+                  <label>
+                    Endpoint
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      selectedWebhookUrl ||
+                      "Configure a webhook path first."
+                    }
+                    readOnly
+                  />
+                </div>
+
+                <div className="config-field">
+                  <label>
+                    Method
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      (
+                        selectedNode.data
+                          ?.config
+                          ?.webhookMethod ||
+                        "POST"
+                      ).toUpperCase()
+                    }
+                    readOnly
+                  />
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="webhook-test-secret">
+                    Secret
+                  </label>
+
+                  <input
+                    id="webhook-test-secret"
+                    type="password"
+                    value={
+                      webhookTestSecret
+                    }
+                    onChange={(event) =>
+                      setWebhookTestSecret(
+                        event.target.value
+                      )
+                    }
+                    placeholder={
+                      selectedNode.data
+                        ?.config
+                        ?.webhookSecret
+                        ? "Uses configured secret if empty"
+                        : "Optional secret"
+                    }
+                    autoComplete="off"
+                  />
+
+                  <small className="config-help">
+                    Leave empty to use the
+                    secret configured on the
+                    trigger.
+                  </small>
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="webhook-test-body">
+                    JSON body
+                  </label>
+
+                  <textarea
+                    id="webhook-test-body"
+                    value={
+                      webhookTestBody
+                    }
+                    onChange={(event) =>
+                      setWebhookTestBody(
+                        event.target.value
+                      )
+                    }
+                    rows="10"
+                  />
+
+                  <small className="config-help">
+                    This body will be sent to
+                    the webhook trigger.
+                  </small>
+                </div>
+
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={
+                    handleWebhookTest
+                  }
+                  disabled={
+                    webhookTesting ||
+                    !selectedWebhookUrl
+                  }
+                  style={{
+                    width: "100%"
+                  }}
+                >
+                  {webhookTesting
+                    ? "Sending..."
+                    : "Send Test Request"}
+                </button>
+
+                {webhookTestError && (
+                  <div
+                    className="save-error"
+                    style={{
+                      marginTop: "12px"
+                    }}
+                  >
+                    {webhookTestError}
+                  </div>
+                )}
+
+                {webhookTestResponse && (
+                  <div
+                    style={{
+                      marginTop: "16px"
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems:
+                          "center",
+                        marginBottom: "8px"
+                      }}
+                    >
+                      <strong>
+                        Response
+                      </strong>
+
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            webhookTestResponse.ok
+                              ? "#4ade80"
+                              : "#ef7d84"
+                        }}
+                      >
+                        {
+                          webhookTestResponse.status
+                        }{" "}
+                        {
+                          webhookTestResponse.statusText
+                        }
+                      </span>
+                    </div>
+
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: "12px",
+                        borderRadius:
+                          "8px",
+                        background:
+                          "#151922",
+                        overflowX:
+                          "auto",
+                        fontSize:
+                          "12px",
+                        lineHeight:
+                          "1.5",
+                        whiteSpace:
+                          "pre-wrap",
+                        wordBreak:
+                          "break-word"
+                      }}
+                    >
+                      {typeof webhookTestResponse.data ===
+                      "string"
+                        ? webhookTestResponse.data
+                        : JSON.stringify(
+                            webhookTestResponse.data,
+                            null,
+                            2
+                          )}
+                    </pre>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          <VersionHistory
+            workflowId={
+              id
+            }
+            currentPublishedVersion={
+              workflow.publishedVersion
+            }
+            onRestored={
+              handleWorkflowRestored
+            }
+          />
+        </div>
 
       </div>
     </div>

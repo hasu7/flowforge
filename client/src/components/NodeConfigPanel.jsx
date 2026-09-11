@@ -1,4 +1,8 @@
-import { useState } from "react";
+import {
+  useState
+} from "react";
+
+import api from "../services/api.js";
 
 function NodeConfigPanel({
   node,
@@ -10,6 +14,9 @@ function NodeConfigPanel({
   const [config, setConfig] = useState(() => ({
     ...(node?.data?.config || {})
   }));
+
+  const [webhookCopied, setWebhookCopied] =
+    useState(false);
 
   if (!node) {
     return (
@@ -31,7 +38,10 @@ function NodeConfigPanel({
   const triggerType =
     config.triggerType || "manual";
 
-  const updateConfig = (key, value) => {
+  const updateConfig = (
+    key,
+    value
+  ) => {
     const updatedConfig = {
       ...config,
       [key]: value
@@ -39,6 +49,12 @@ function NodeConfigPanel({
 
     setConfig(updatedConfig);
     onUpdate(updatedConfig);
+
+    if (
+      key === "webhookPath"
+    ) {
+      setWebhookCopied(false);
+    }
   };
 
   const getNodeTitle = () => {
@@ -90,6 +106,52 @@ function NodeConfigPanel({
           scheduleStatus.nextRun
         ).toLocaleString()
       : null;
+
+  const normalizedWebhookPath =
+    typeof config.webhookPath ===
+      "string"
+      ? config.webhookPath
+          .trim()
+          .replace(/^\/+/, "")
+          .replace(/\/+$/, "")
+      : "";
+
+  const webhookBaseUrl =
+    api.defaults.baseURL
+      ? api.defaults.baseURL.replace(
+          /\/$/,
+          ""
+        )
+      : "";
+
+  const webhookUrl =
+    normalizedWebhookPath
+      ? `${webhookBaseUrl}/webhooks/${normalizedWebhookPath}`
+      : "";
+
+  const handleCopyWebhookUrl =
+    async () => {
+      if (!webhookUrl) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          webhookUrl
+        );
+
+        setWebhookCopied(true);
+
+        window.setTimeout(() => {
+          setWebhookCopied(false);
+        }, 2000);
+      } catch (error) {
+        console.error(
+          "Failed to copy webhook URL:",
+          error
+        );
+      }
+    };
 
   return (
     <aside className="node-config-panel">
@@ -210,6 +272,54 @@ function NodeConfigPanel({
               </div>
 
               <div className="config-field">
+                <label>
+                  Webhook URL
+                </label>
+
+                {webhookUrl ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "stretch"
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={webhookUrl}
+                      readOnly
+                      aria-label="Webhook URL"
+                      style={{
+                        flex: 1
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={
+                        handleCopyWebhookUrl
+                      }
+                    >
+                      {webhookCopied
+                        ? "Copied!"
+                        : "Copy"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="config-disabled">
+                    Enter a webhook path to
+                    generate the endpoint URL.
+                  </div>
+                )}
+
+                <small className="config-help">
+                  Send requests to this URL to
+                  start the published workflow.
+                </small>
+              </div>
+
+              <div className="config-field">
                 <label htmlFor="webhook-secret">
                   Webhook secret
                 </label>
@@ -233,8 +343,11 @@ function NodeConfigPanel({
 
                 <small className="config-help">
                   Optional verification secret.
-                  We will use this later to
-                  authenticate incoming requests.
+                  Send it using the
+                  {" "}
+                  x-webhook-secret
+                  {" "}
+                  request header.
                 </small>
               </div>
 

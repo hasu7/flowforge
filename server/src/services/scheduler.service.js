@@ -294,6 +294,33 @@ const createScheduleDefinition = (
   );
 };
 
+/*
+ * The schedule signature represents the actual
+ * Cron behavior.
+ *
+ * We intentionally use the generated schedule
+ * definition instead of the whole config so that
+ * unrelated workflow configuration changes do not
+ * unnecessarily restart the scheduler job.
+ *
+ * Examples:
+ * - interval 1 -> interval 2 changes the signature
+ * - daily 09:00 -> 10:00 changes the signature
+ * - timezone changes the signature
+ * - cron expression changes the signature
+ */
+const createScheduleSignature = (
+  definition
+) => {
+  return JSON.stringify({
+    pattern:
+      definition.pattern,
+
+    options:
+      definition.options
+  });
+};
+
 const createScheduleKey = (
   workflowId,
   scheduleNodeId
@@ -304,15 +331,15 @@ const createScheduleKey = (
 const stopScheduledJob = (
   key
 ) => {
-  const existingJob =
+  const existingEntry =
     scheduledJobs.get(key);
 
-  if (!existingJob) {
+  if (!existingEntry) {
     return;
   }
 
   try {
-    existingJob.stop();
+    existingEntry.job.stop();
   } catch (error) {
     console.error(
       `Failed to stop scheduler job ${key}:`,
@@ -478,21 +505,55 @@ const registerWorkflowSchedule =
       );
 
     /*
-     * Do not register the same schedule
-     * twice.
+     * Build and validate the new schedule
+     * definition before touching an existing job.
+     *
+     * This means an invalid new configuration
+     * will not destroy a previously valid job.
      */
-    if (
-      scheduledJobs.has(key)
-    ) {
-      return scheduledJobs.get(
-        key
-      );
-    }
-
     const definition =
       createScheduleDefinition(
         config
       );
+
+    const signature =
+      createScheduleSignature(
+        definition
+      );
+
+    const existingEntry =
+      scheduledJobs.get(key);
+
+    /*
+     * The schedule already exists and its actual
+     * timing behavior has not changed.
+     *
+     * Keep the existing Cron job.
+     */
+    if (
+      existingEntry &&
+      existingEntry.signature ===
+        signature
+    ) {
+      return existingEntry.job;
+    }
+
+    /*
+     * The schedule exists but its configuration
+     * changed.
+     *
+     * Stop the old Cron job before registering
+     * the new schedule.
+     */
+    if (existingEntry) {
+      console.log(
+        `Schedule changed. Replacing scheduler job: workflow=${workflow._id} node=${scheduleNode.id}`
+      );
+
+      stopScheduledJob(
+        key
+      );
+    }
 
     const job =
       new Cron(
@@ -629,7 +690,11 @@ const registerWorkflowSchedule =
 
     scheduledJobs.set(
       key,
-      job
+      {
+        job,
+
+        signature
+      }
     );
 
     console.log(
@@ -697,21 +762,23 @@ export const refreshScheduler =
             key
           );
 
-          if (
-            !scheduledJobs.has(
-              key
-            )
-          ) {
-            try {
-              await registerWorkflowSchedule(
-                workflow
-              );
-            } catch (error) {
-              console.error(
-                `Failed to register schedule for workflow ${workflow._id}:`,
-                error
-              );
-            }
+          /*
+           * Always ask registerWorkflowSchedule
+           * to inspect the current schedule.
+           *
+           * It will keep the existing job when
+           * nothing changed, or replace it when
+           * the schedule configuration changed.
+           */
+          try {
+            await registerWorkflowSchedule(
+              workflow
+            );
+          } catch (error) {
+            console.error(
+              `Failed to register schedule for workflow ${workflow._id}:`,
+              error
+            );
           }
         }
       } catch (error) {
@@ -770,15 +837,16 @@ export const getSchedulerStatus =
         Array.from(
           scheduledJobs.entries()
         ).map(
-          ([key, job]) => ({
+          ([key, entry]) => ({
             key,
 
             nextRun:
-              job
+              entry
+                .job
                 .nextRun()
                 ?.toISOString() ||
               null
           })
         )
     };
-  }; 
+  };

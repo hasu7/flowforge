@@ -1,134 +1,134 @@
-import mongoose from "mongoose";
+  import mongoose from "mongoose";
 
-const workflowNodeSchema = new mongoose.Schema(
-  {
-    id: {
-      type: String,
-      required: true
-    },
-
-    type: {
-      type: String,
-      required: true
-    },
-
-    position: {
-      x: {
-        type: Number,
+  const workflowNodeSchema = new mongoose.Schema(
+    {
+      id: {
+        type: String,
         required: true
       },
 
-      y: {
-        type: Number,
+      type: {
+        type: String,
         required: true
+      },
+
+      position: {
+        x: {
+          type: Number,
+          required: true
+        },
+
+        y: {
+          type: Number,
+          required: true
+        }
+      },
+
+      config: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
       }
     },
-
-    config: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {}
+    {
+      _id: false
     }
-  },
-  {
-    _id: false
-  }
-);
+  );
 
-const workflowEdgeSchema = new mongoose.Schema(
-  {
-    id: {
-      type: String,
-      required: true
+  const workflowEdgeSchema = new mongoose.Schema(
+    {
+      id: {
+        type: String,
+        required: true
+      },
+
+      source: {
+        type: String,
+        required: true
+      },
+
+      target: {
+        type: String,
+        required: true
+      },
+
+      sourceHandle: {
+        type: String,
+        default: null
+      },
+
+      targetHandle: {
+        type: String,
+        default: null
+      }
     },
-
-    source: {
-      type: String,
-      required: true
-    },
-
-    target: {
-      type: String,
-      required: true
-    },
-
-    sourceHandle: {
-      type: String,
-      default: null
-    },
-
-    targetHandle: {
-      type: String,
-      default: null
+    {
+      _id: false
     }
-  },
-  {
-    _id: false
-  }
-);
+  );
 
-const workflowSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: 1,
-      maxlength: 100
+  const workflowSchema = new mongoose.Schema(
+    {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 1,
+        maxlength: 100
+      },
+
+      description: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+        default: ""
+      },
+
+      owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true
+      },
+
+      nodes: {
+        type: [workflowNodeSchema],
+        default: []
+      },
+
+      edges: {
+        type: [workflowEdgeSchema],
+        default: []
+      },
+
+      status: {
+        type: String,
+        enum: ["draft", "published"],
+        default: "draft"
+      },
+
+      version: {
+        type: Number,
+        default: 1
+      },
+
+      publishedVersion: {
+        type: Number,
+        default: null
+      },
+
+      publishedAt: {
+        type: Date,
+        default: null
+      }
     },
-
-    description: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-      default: ""
-    },
-
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true
-    },
-
-    nodes: {
-      type: [workflowNodeSchema],
-      default: []
-    },
-
-    edges: {
-      type: [workflowEdgeSchema],
-      default: []
-    },
-
-    status: {
-      type: String,
-      enum: ["draft", "published"],
-      default: "draft"
-    },
-
-    version: {
-      type: Number,
-      default: 1
-    },
-
-    publishedVersion: {
-      type: Number,
-      default: null
-    },
-
-    publishedAt: {
-      type: Date,
-      default: null
+    {
+      timestamps: true
     }
-  },
-  {
-    timestamps: true
-  }
-);
+  );
 
-const Workflow = mongoose.model(
-  "Workflow",
-  workflowSchema
-);
+  const Workflow = mongoose.model(
+    "Workflow",
+    workflowSchema
+  );
 
-export default Workflow;
+  export default Workflow;

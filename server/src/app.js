@@ -14,25 +14,18 @@ const app = express();
 
 app.use(
   cors({
-    origin:
-      "http://localhost:5173",
+    origin: "http://localhost:5173",
     credentials: true
   })
 );
 
-app.use(
-  express.json()
-);
-
-app.use(
-  cookieParser()
-);
+app.use(express.json());
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message:
-      "FlowForge API is running"
+    message: "FlowForge API is running"
   });
 });
 
@@ -47,6 +40,11 @@ app.use(
 );
 
 app.use(
+  "/api/v1/webhooks",
+  webhookRoutes
+);
+
+app.use(
   "/api/v1/workflows",
   workflowRoutes
 );
@@ -56,13 +54,6 @@ app.use(
   executionRoutes
 );
 
-app.use(
-  "/api/v1/webhooks",
-  webhookRoutes
-);
-
-app.use(
-  errorHandler
-);
+app.use(errorHandler);
 
 export default app;

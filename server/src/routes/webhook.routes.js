@@ -7,8 +7,8 @@ import {
 const router =
   express.Router();
 
-router.post(
-  "/:workflowId",
+router.all(
+  "/:webhookPath",
   handleWebhook
 );
 
