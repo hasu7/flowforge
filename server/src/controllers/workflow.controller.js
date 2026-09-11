@@ -2,8 +2,17 @@ import Workflow from "../models/workflow.js";
 import WorkflowVersion from "../models/workflowVersion.js";
 
 import {
+  updateWorkflowSchema
+} from "../validation/workflow.validation.js";
+
+import {
   validateWorkflowGraph
 } from "../services/workflow-engine.service.js";
+
+import {
+  refreshScheduler,
+  getSchedulerStatus
+} from "../services/scheduler.service.js";
 
 export const createWorkflow = async (
   req,
@@ -77,6 +86,68 @@ export const getWorkflow = async (
     next(error);
   }
 };
+
+export const getScheduleStatus =
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const workflow =
+        await Workflow.findOne({
+          _id: req.params.id,
+          owner: req.user._id
+        });
+
+      if (!workflow) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Workflow not found."
+        });
+      }
+
+      const schedulerStatus =
+        getSchedulerStatus();
+
+      const workflowId =
+        workflow._id.toString();
+
+      const schedules =
+        schedulerStatus.schedules.filter(
+          (schedule) =>
+            schedule.key.startsWith(
+              `${workflowId}:`
+            )
+        );
+
+      /*
+       * A workflow can only contain one
+       * trigger, and Schedule is one of the
+       * supported trigger types.
+       */
+      const activeSchedule =
+        schedules.length > 0
+          ? schedules[0]
+          : null;
+
+      return res.json({
+        success: true,
+
+        schedule: {
+          active:
+            activeSchedule !== null,
+
+          nextRun:
+            activeSchedule?.nextRun ||
+            null
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 
 export const updateWorkflow = async (
   req,
@@ -162,6 +233,15 @@ export const deleteWorkflow = async (
       workflow: workflow._id
     });
 
+    try {
+      await refreshScheduler();
+    } catch (schedulerError) {
+      console.error(
+        "Failed to refresh scheduler after workflow deletion:",
+        schedulerError
+      );
+    }
+
     return res.json({
       success: true,
       message:
@@ -191,14 +271,66 @@ export const publishWorkflow = async (
       });
     }
 
-    validateWorkflowGraph(
-      workflow.nodes || [],
-      workflow.edges || []
-    );
+    const schemaResult =
+      updateWorkflowSchema
+        .pick({
+          nodes: true,
+          edges: true
+        })
+        .safeParse({
+          nodes:
+            workflow.nodes || [],
+          edges:
+            workflow.edges || []
+        });
+
+    if (!schemaResult.success) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Workflow contains invalid node or edge configuration.",
+        errors:
+          schemaResult.error.issues.map(
+            (issue) => ({
+              path:
+                issue.path,
+              message:
+                issue.message
+            })
+          )
+      });
+    }
+
+    const validationErrors =
+      validateWorkflowGraph(
+        workflow.nodes || [],
+        workflow.edges || []
+      );
+
+    if (
+      validationErrors.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Workflow validation failed.",
+        errors:
+          validationErrors
+      });
+    }
+
+    const latestVersion =
+      await WorkflowVersion.findOne({
+        workflow:
+          workflow._id
+      }).sort({
+        version: -1
+      });
 
     const nextPublishedVersion =
-      (workflow.publishedVersion ||
-        0) + 1;
+      latestVersion
+        ? latestVersion.version + 1
+        : 1;
 
     const publishedVersion =
       await WorkflowVersion.create({
@@ -224,6 +356,15 @@ export const publishWorkflow = async (
       publishedVersion.publishedAt;
 
     await workflow.save();
+
+    try {
+      await refreshScheduler();
+    } catch (schedulerError) {
+      console.error(
+        `Failed to refresh scheduler after publishing workflow ${workflow._id}:`,
+        schedulerError
+      );
+    }
 
     return res.json({
       success: true,
@@ -406,6 +547,15 @@ export const restoreWorkflowVersion =
       workflow.version += 1;
 
       await workflow.save();
+
+      try {
+        await refreshScheduler();
+      } catch (schedulerError) {
+        console.error(
+          `Failed to refresh scheduler after restoring workflow ${workflow._id}:`,
+          schedulerError
+        );
+      }
 
       return res.json({
         success: true,

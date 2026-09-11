@@ -23,6 +23,7 @@ import "@xyflow/react/dist/style.css";
 
 import {
   getWorkflow,
+  getScheduleStatus,
   updateWorkflow,
   publishWorkflow
 } from "../services/workflow.services.js";
@@ -47,8 +48,7 @@ const nodeTypes = {
 function Editor() {
   const { id } = useParams();
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
   const [workflow, setWorkflow] =
     useState(null);
@@ -88,6 +88,49 @@ function Editor() {
 
   const [runMessage, setRunMessage] =
     useState("");
+
+  const [scheduleStatus, setScheduleStatus] =
+    useState({
+      active: false,
+      nextRun: null
+    });
+
+  const [scheduleStatusLoading, setScheduleStatusLoading] =
+    useState(false);
+
+  const loadScheduleStatus =
+    useCallback(
+      async () => {
+        try {
+          setScheduleStatusLoading(true);
+
+          const response =
+            await getScheduleStatus(id);
+
+          setScheduleStatus({
+            active:
+              response.schedule?.active === true,
+
+            nextRun:
+              response.schedule?.nextRun ||
+              null
+          });
+        } catch (error) {
+          console.error(
+            "Failed to load schedule status:",
+            error
+          );
+
+          setScheduleStatus({
+            active: false,
+            nextRun: null
+          });
+        } finally {
+          setScheduleStatusLoading(false);
+        }
+      },
+      [id]
+    );
 
   const loadWorkflow =
     useCallback(
@@ -189,7 +232,7 @@ function Editor() {
           setError(
             error.response?.data
               ?.message ||
-              "Failed to load workflow."
+            "Failed to load workflow."
           );
         } finally {
           setLoading(false);
@@ -203,9 +246,56 @@ function Editor() {
     );
 
   useEffect(() => {
-    loadWorkflow();
+    let cancelled = false;
+
+    const runLoadWorkflow =
+      async () => {
+        if (cancelled) {
+          return;
+        }
+
+        await loadWorkflow();
+      };
+
+    void runLoadWorkflow();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     loadWorkflow
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchScheduleStatus =
+      async () => {
+        if (cancelled) {
+          return;
+        }
+
+        await loadScheduleStatus();
+      };
+
+    fetchScheduleStatus();
+
+    const interval =
+      setInterval(
+        () => {
+          fetchScheduleStatus();
+        },
+        10000
+      );
+
+    return () => {
+      cancelled = true;
+      clearInterval(
+        interval
+      );
+    };
+  }, [
+    loadScheduleStatus
   ]);
 
   const onConnect =
@@ -244,12 +334,12 @@ function Editor() {
             x:
               250 +
               Math.random() *
-                200,
+              200,
 
             y:
               100 +
               Math.random() *
-                300
+              300
           },
 
           data: {
@@ -411,10 +501,8 @@ function Editor() {
         }
 
         if (
-          event.key ===
-            "Delete" ||
-          event.key ===
-            "Backspace"
+          event.key === "Delete" ||
+          event.key === "Backspace"
         ) {
           event.preventDefault();
 
@@ -540,7 +628,7 @@ function Editor() {
         setError(
           error.response?.data
             ?.message ||
-            "Failed to save workflow."
+          "Failed to save workflow."
         );
       } finally {
         setSaving(false);
@@ -563,8 +651,7 @@ function Editor() {
         );
 
       if (
-        validationErrors.length >
-        0
+        validationErrors.length > 0
       ) {
         setError(
           validationErrors.join(
@@ -602,8 +689,10 @@ function Editor() {
 
         setPublishMessage(
           response.message ||
-            "Workflow published successfully."
+          "Workflow published successfully."
         );
+
+        await loadScheduleStatus();
       } catch (error) {
         console.error(
           "Failed to publish workflow:",
@@ -613,12 +702,10 @@ function Editor() {
         setError(
           error.response?.data
             ?.message ||
-            "Failed to publish workflow."
+          "Failed to publish workflow."
         );
       } finally {
-        setPublishing(
-          false
-        );
+        setPublishing(false);
       }
     };
 
@@ -638,8 +725,7 @@ function Editor() {
         );
 
       if (
-        validationErrors.length >
-        0
+        validationErrors.length > 0
       ) {
         setError(
           validationErrors.join(
@@ -694,8 +780,8 @@ function Editor() {
         setError(
           error.response?.data
             ?.message ||
-            error.message ||
-            "Failed to run workflow."
+          error.message ||
+          "Failed to run workflow."
         );
       } finally {
         setRunning(false);
@@ -703,7 +789,9 @@ function Editor() {
     };
 
   const handleWorkflowRestored =
-    async (restoredWorkflow) => {
+    async (
+      restoredWorkflow
+    ) => {
       setWorkflow(
         restoredWorkflow
       );
@@ -711,11 +799,13 @@ function Editor() {
       setSaveMessage("");
       setPublishMessage("");
       setRunMessage("");
+
       setError(
         "Workflow restored as a draft. Review it before publishing."
       );
 
       await loadWorkflow();
+      await loadScheduleStatus();
     };
 
   const selectedNode =
@@ -960,10 +1050,19 @@ function Editor() {
         </div>
 
         <NodeConfigPanel
+          key={
+            selectedNode?.id ||
+            "empty"
+          }
           node={
             selectedNode
           }
-
+          scheduleStatus={
+            scheduleStatus
+          }
+          scheduleStatusLoading={
+            scheduleStatusLoading
+          }
           onUpdate={(
             updatedConfig
           ) => {
@@ -978,7 +1077,6 @@ function Editor() {
               updatedConfig
             );
           }}
-
           onClose={() => {
             setSelectedNodeId(
               null

@@ -1,26 +1,23 @@
 import {
-  useEffect,
   useState
 } from "react";
 
 function NodeConfigPanel({
   node,
+  scheduleStatus = {
+    active: false,
+    nextRun: null
+  },
+  scheduleStatusLoading = false,
   onUpdate,
   onClose
 }) {
   const [config, setConfig] =
-    useState({});
-
-  useEffect(() => {
-    if (!node) {
-      setConfig({});
-      return;
-    }
-
-    setConfig({
-      ...(node.data?.config || {})
-    });
-  }, [node]);
+    useState(
+      () => ({
+        ...(node?.data?.config || {})
+      })
+    );
 
   if (!node) {
     return (
@@ -49,9 +46,13 @@ function NodeConfigPanel({
       [key]: value
     };
 
-    setConfig(updatedConfig);
+    setConfig(
+      updatedConfig
+    );
 
-    onUpdate(updatedConfig);
+    onUpdate(
+      updatedConfig
+    );
   };
 
   const getNodeTitle = () => {
@@ -59,19 +60,59 @@ function NodeConfigPanel({
       return "HTTP Request";
     }
 
-    if (nodeType === "condition") {
+    if (
+      nodeType === "condition"
+    ) {
       return "Condition";
     }
 
-    if (nodeType === "schedule") {
+    if (
+      nodeType === "schedule"
+    ) {
       return "Schedule";
     }
 
     return "Trigger";
   };
 
+  const formatNextRun = (
+    nextRun
+  ) => {
+    if (!nextRun) {
+      return null;
+    }
+
+    const date =
+      new Date(nextRun);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return null;
+    }
+
+    return date.toLocaleString(
+      undefined,
+      {
+        dateStyle:
+          "medium",
+
+        timeStyle:
+          "short"
+      }
+    );
+  };
+
+  const formattedNextRun =
+    formatNextRun(
+      scheduleStatus.nextRun
+    );
+
   const httpMethod =
-    config.method || "GET";
+    config.method ||
+    "GET";
 
   const showRequestBody =
     httpMethod !== "GET" &&
@@ -79,13 +120,19 @@ function NodeConfigPanel({
     httpMethod !== "DELETE";
 
   const timeoutSeconds =
-    config.timeoutMs !== undefined
-      ? Number(config.timeoutMs) / 1000
+    config.timeoutMs !==
+    undefined
+      ? Number(
+          config.timeoutMs
+        ) / 1000
       : 10;
 
   const retryCount =
-    config.retries !== undefined
-      ? Number(config.retries)
+    config.retries !==
+    undefined
+      ? Number(
+          config.retries
+        )
       : 0;
 
   return (
@@ -113,7 +160,8 @@ function NodeConfigPanel({
 
       </div>
 
-      {nodeType === "trigger" && (
+      {nodeType ===
+        "trigger" && (
         <div className="node-config-section">
 
           <div className="config-field">
@@ -128,10 +176,13 @@ function NodeConfigPanel({
                 config.triggerType ||
                 "manual"
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "triggerType",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             >
@@ -149,8 +200,92 @@ function NodeConfigPanel({
         </div>
       )}
 
-      {nodeType === "schedule" && (
+      {nodeType ===
+        "schedule" && (
         <div className="node-config-section">
+
+          <div
+            className="config-field"
+            style={{
+              marginBottom:
+                "16px"
+            }}
+          >
+            <label>
+              Scheduler status
+            </label>
+
+            <div
+              style={{
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                gap:
+                  "8px",
+
+                padding:
+                  "10px 12px",
+
+                border:
+                  "1px solid var(--border-color, #ddd)",
+
+                borderRadius:
+                  "8px"
+              }}
+            >
+              <span
+                style={{
+                  width:
+                    "9px",
+
+                  height:
+                    "9px",
+
+                  borderRadius:
+                    "50%",
+
+                  backgroundColor:
+                    scheduleStatusLoading
+                      ? "#999"
+                      : scheduleStatus.active
+                      ? "#22c55e"
+                      : "#9ca3af",
+
+                  flexShrink:
+                    0
+                }}
+              />
+
+              <strong>
+                {scheduleStatusLoading
+                  ? "Checking..."
+                  : scheduleStatus.active
+                  ? "Active"
+                  : "Inactive"}
+              </strong>
+            </div>
+
+            {scheduleStatus.active &&
+              formattedNextRun && (
+                <small className="config-help">
+                  Next run:{" "}
+                  {
+                    formattedNextRun
+                  }
+                </small>
+              )}
+
+            {!scheduleStatus.active && (
+              <small className="config-help">
+                The scheduler is inactive.
+                Publish the workflow with
+                scheduling enabled to activate it.
+              </small>
+            )}
+          </div>
 
           <div className="config-field">
 
@@ -164,10 +299,13 @@ function NodeConfigPanel({
                 config.scheduleType ||
                 "daily"
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "scheduleType",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             >
@@ -213,13 +351,16 @@ function NodeConfigPanel({
                   config.intervalMinutes ||
                   30
                 }
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   updateConfig(
                     "intervalMinutes",
                     Math.max(
                       1,
                       Number(
-                        event.target.value
+                        event.target
+                          .value
                       ) || 1
                     )
                   )
@@ -254,7 +395,9 @@ function NodeConfigPanel({
                   config.minute ??
                   0
                 }
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   updateConfig(
                     "minute",
                     Math.min(
@@ -262,7 +405,8 @@ function NodeConfigPanel({
                       Math.max(
                         0,
                         Number(
-                          event.target.value
+                          event.target
+                            .value
                         ) || 0
                       )
                     )
@@ -271,8 +415,8 @@ function NodeConfigPanel({
               />
 
               <small className="config-help">
-                Example: 15 means every hour
-                at xx:15.
+                Example: 15 means every
+                hour at xx:15.
               </small>
 
             </div>
@@ -295,10 +439,13 @@ function NodeConfigPanel({
                   config.time ||
                   "09:00"
                 }
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   updateConfig(
                     "time",
-                    event.target.value
+                    event.target
+                      .value
                   )
                 }
               />
@@ -328,10 +475,13 @@ function NodeConfigPanel({
                     config.dayOfWeek ||
                     "monday"
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     updateConfig(
                       "dayOfWeek",
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 >
@@ -379,10 +529,13 @@ function NodeConfigPanel({
                     config.time ||
                     "09:00"
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     updateConfig(
                       "time",
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
@@ -408,18 +561,21 @@ function NodeConfigPanel({
                   config.cron ||
                   "0 9 * * *"
                 }
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   updateConfig(
                     "cron",
-                    event.target.value
+                    event.target
+                      .value
                   )
                 }
                 placeholder="0 9 * * *"
               />
 
               <small className="config-help">
-                Example: 0 9 * * * runs every
-                day at 9:00 AM.
+                Example: 0 9 * * *
+                runs every day at 9:00 AM.
               </small>
 
             </div>
@@ -437,10 +593,13 @@ function NodeConfigPanel({
                 config.timezone ||
                 "Asia/Kolkata"
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "timezone",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             >
@@ -492,14 +651,18 @@ function NodeConfigPanel({
 
             <select
               value={
-                config.enabled !== false
+                config.enabled !==
+                false
                   ? "enabled"
                   : "disabled"
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "enabled",
-                  event.target.value ===
+                  event.target
+                    .value ===
                     "enabled"
                 )
               }
@@ -514,8 +677,8 @@ function NodeConfigPanel({
             </select>
 
             <small className="config-help">
-              Scheduling will only become
-              active for a published workflow.
+              Scheduling only becomes active
+              for a published workflow.
             </small>
 
           </div>
@@ -534,11 +697,16 @@ function NodeConfigPanel({
 
             <select
               id="http-method"
-              value={httpMethod}
-              onChange={(event) =>
+              value={
+                httpMethod
+              }
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "method",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             >
@@ -575,12 +743,16 @@ function NodeConfigPanel({
               id="http-url"
               type="text"
               value={
-                config.url || ""
+                config.url ||
+                ""
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "url",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder="https://api.example.com/users/{{data.id}}"
@@ -605,19 +777,27 @@ function NodeConfigPanel({
               min="1"
               max="120"
               step="1"
-              value={timeoutSeconds}
-              onChange={(event) => {
+              value={
+                timeoutSeconds
+              }
+              onChange={(
+                event
+              ) => {
                 const seconds =
                   Number(
-                    event.target.value
+                    event.target
+                      .value
                   );
 
                 updateConfig(
                   "timeoutMs",
-                  Number.isFinite(seconds) &&
-                    seconds > 0
+                  Number.isFinite(
+                    seconds
+                  ) &&
+                  seconds > 0
                     ? Math.min(
-                        seconds * 1000,
+                        seconds *
+                          1000,
                         120000
                       )
                     : 10000
@@ -644,19 +824,28 @@ function NodeConfigPanel({
               min="0"
               max="5"
               step="1"
-              value={retryCount}
-              onChange={(event) => {
+              value={
+                retryCount
+              }
+              onChange={(
+                event
+              ) => {
                 const retries =
                   Number(
-                    event.target.value
+                    event.target
+                      .value
                   );
 
                 updateConfig(
                   "retries",
-                  Number.isFinite(retries) &&
-                    retries >= 0
+                  Number.isFinite(
+                    retries
+                  ) &&
+                  retries >= 0
                     ? Math.min(
-                        Math.floor(retries),
+                        Math.floor(
+                          retries
+                        ),
                         5
                       )
                     : 0
@@ -683,12 +872,16 @@ function NodeConfigPanel({
                 <textarea
                   id="http-body"
                   value={
-                    config.body || ""
+                    config.body ||
+                    ""
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     updateConfig(
                       "body",
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder={`{
@@ -724,12 +917,16 @@ function NodeConfigPanel({
             <textarea
               id="http-headers"
               value={
-                config.headers || ""
+                config.headers ||
+                ""
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "headers",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder={`{
@@ -750,7 +947,8 @@ function NodeConfigPanel({
         </div>
       )}
 
-      {nodeType === "condition" && (
+      {nodeType ===
+        "condition" && (
         <div className="node-config-section">
 
           <div className="config-field">
@@ -763,12 +961,16 @@ function NodeConfigPanel({
               id="condition-field"
               type="text"
               value={
-                config.field || ""
+                config.field ||
+                ""
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "field",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder="status"
@@ -792,10 +994,13 @@ function NodeConfigPanel({
                 config.operator ||
                 "equals"
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "operator",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             >
@@ -832,12 +1037,16 @@ function NodeConfigPanel({
               id="condition-value"
               type="text"
               value={
-                config.value || ""
+                config.value ||
+                ""
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 updateConfig(
                   "value",
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder="200"

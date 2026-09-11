@@ -4,6 +4,7 @@ import {
   createWorkflow,
   getWorkflows,
   getWorkflow,
+  getScheduleStatus,
   updateWorkflow,
   deleteWorkflow,
   publishWorkflow,
@@ -57,6 +58,11 @@ router.post(
 router.post(
   "/:id/publish",
   publishWorkflow
+);
+
+router.get(
+  "/:id/schedule",
+  getScheduleStatus
 );
 
 router.get(

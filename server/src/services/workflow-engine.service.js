@@ -3,8 +3,19 @@ import Execution from "../models/Execution.js";
 const getNodeType = (node) => {
   return (
     node.config?.nodeType ||
+    node.data?.nodeType ||
     node.type ||
     "trigger"
+  );
+};
+
+const isTriggerNode = (node) => {
+  const nodeType =
+    getNodeType(node);
+
+  return (
+    nodeType === "trigger" ||
+    nodeType === "schedule"
   );
 };
 
@@ -380,8 +391,7 @@ export const validateWorkflowGraph = (
   const triggerNodes =
     nodes.filter(
       (node) =>
-        getNodeType(node) ===
-        "trigger"
+        isTriggerNode(node)
     );
 
   if (
@@ -1048,8 +1058,7 @@ export const executeWorkflow =
     const triggerNode =
       nodes.find(
         (node) =>
-          getNodeType(node) ===
-          "trigger"
+          isTriggerNode(node)
       );
 
     const nodeMap =
@@ -1152,7 +1161,9 @@ export const executeWorkflow =
 
           if (
             nodeType ===
-            "trigger"
+              "trigger" ||
+            nodeType ===
+              "schedule"
           ) {
             output =
               triggerInput;

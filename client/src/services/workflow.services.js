@@ -30,6 +30,16 @@ export const getWorkflow =
     return response.data;
   };
 
+export const getScheduleStatus =
+  async (workflowId) => {
+    const response =
+      await api.get(
+        `/workflows/${workflowId}/schedule`
+      );
+
+    return response.data;
+  };
+
 export const updateWorkflow =
   async (
     workflowId,
@@ -86,7 +96,8 @@ export const getWorkflowVersion =
 
     return response.data;
   };
-  export const restoreWorkflowVersion =
+
+export const restoreWorkflowVersion =
   async (
     workflowId,
     version

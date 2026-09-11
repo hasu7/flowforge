@@ -5,6 +5,16 @@ const getNodeType = (node) => {
   );
 };
 
+const isTriggerNode = (node) => {
+  const nodeType =
+    getNodeType(node);
+
+  return (
+    nodeType === "trigger" ||
+    nodeType === "schedule"
+  );
+};
+
 export const validateWorkflow = (
   nodes,
   edges
@@ -70,8 +80,7 @@ export const validateWorkflow = (
   const triggerNodes =
     nodes.filter(
       (node) =>
-        getNodeType(node) ===
-        "trigger"
+        isTriggerNode(node)
     );
 
   if (triggerNodes.length === 0) {
