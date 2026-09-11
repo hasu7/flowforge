@@ -1,23 +1,15 @@
-import {
-  useState
-} from "react";
+import { useState } from "react";
 
 function NodeConfigPanel({
   node,
-  scheduleStatus = {
-    active: false,
-    nextRun: null
-  },
-  scheduleStatusLoading = false,
+  scheduleStatus,
+  scheduleStatusLoading,
   onUpdate,
   onClose
 }) {
-  const [config, setConfig] =
-    useState(
-      () => ({
-        ...(node?.data?.config || {})
-      })
-    );
+  const [config, setConfig] = useState(() => ({
+    ...(node?.data?.config || {})
+  }));
 
   if (!node) {
     return (
@@ -34,25 +26,19 @@ function NodeConfigPanel({
   }
 
   const nodeType =
-    node.data?.nodeType ||
-    "trigger";
+    node.data?.nodeType || "trigger";
 
-  const updateConfig = (
-    key,
-    value
-  ) => {
+  const triggerType =
+    config.triggerType || "manual";
+
+  const updateConfig = (key, value) => {
     const updatedConfig = {
       ...config,
       [key]: value
     };
 
-    setConfig(
-      updatedConfig
-    );
-
-    onUpdate(
-      updatedConfig
-    );
+    setConfig(updatedConfig);
+    onUpdate(updatedConfig);
   };
 
   const getNodeTitle = () => {
@@ -60,59 +46,19 @@ function NodeConfigPanel({
       return "HTTP Request";
     }
 
-    if (
-      nodeType === "condition"
-    ) {
+    if (nodeType === "condition") {
       return "Condition";
     }
 
-    if (
-      nodeType === "schedule"
-    ) {
-      return "Schedule";
+    if (nodeType === "schedule") {
+      return "Schedule Trigger";
     }
 
     return "Trigger";
   };
 
-  const formatNextRun = (
-    nextRun
-  ) => {
-    if (!nextRun) {
-      return null;
-    }
-
-    const date =
-      new Date(nextRun);
-
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return null;
-    }
-
-    return date.toLocaleString(
-      undefined,
-      {
-        dateStyle:
-          "medium",
-
-        timeStyle:
-          "short"
-      }
-    );
-  };
-
-  const formattedNextRun =
-    formatNextRun(
-      scheduleStatus.nextRun
-    );
-
   const httpMethod =
-    config.method ||
-    "GET";
+    config.method || "GET";
 
   const showRequestBody =
     httpMethod !== "GET" &&
@@ -120,26 +66,34 @@ function NodeConfigPanel({
     httpMethod !== "DELETE";
 
   const timeoutSeconds =
-    config.timeoutMs !==
-    undefined
-      ? Number(
-          config.timeoutMs
-        ) / 1000
+    config.timeoutMs !== undefined
+      ? Number(config.timeoutMs) / 1000
       : 10;
 
   const retryCount =
-    config.retries !==
-    undefined
-      ? Number(
-          config.retries
-        )
+    config.retries !== undefined
+      ? Number(config.retries)
       : 0;
+
+  const scheduleType =
+    config.scheduleType || "interval";
+
+  const scheduleEnabled =
+    config.enabled !== false;
+
+  const scheduleActive =
+    scheduleStatus?.active === true;
+
+  const formattedNextRun =
+    scheduleStatus?.nextRun
+      ? new Date(
+          scheduleStatus.nextRun
+        ).toLocaleString()
+      : null;
 
   return (
     <aside className="node-config-panel">
-
       <div className="node-config-header">
-
         <div>
           <p className="node-config-label">
             Configuration
@@ -157,32 +111,22 @@ function NodeConfigPanel({
         >
           ×
         </button>
-
       </div>
 
-      {nodeType ===
-        "trigger" && (
+      {nodeType === "trigger" && (
         <div className="node-config-section">
-
           <div className="config-field">
-
             <label htmlFor="trigger-type">
               Trigger type
             </label>
 
             <select
               id="trigger-type"
-              value={
-                config.triggerType ||
-                "manual"
-              }
-              onChange={(
-                event
-              ) =>
+              value={triggerType}
+              onChange={(event) =>
                 updateConfig(
                   "triggerType",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
             >
@@ -194,193 +138,255 @@ function NodeConfigPanel({
                 Webhook
               </option>
             </select>
-
           </div>
 
+          {triggerType === "webhook" && (
+            <>
+              <div className="config-field">
+                <label htmlFor="webhook-method">
+                  Method
+                </label>
+
+                <select
+                  id="webhook-method"
+                  value={
+                    config.webhookMethod ||
+                    "POST"
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "webhookMethod",
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="POST">
+                    POST
+                  </option>
+
+                  <option value="GET">
+                    GET
+                  </option>
+
+                  <option value="PUT">
+                    PUT
+                  </option>
+
+                  <option value="PATCH">
+                    PATCH
+                  </option>
+                </select>
+              </div>
+
+              <div className="config-field">
+                <label htmlFor="webhook-path">
+                  Webhook path
+                </label>
+
+                <input
+                  id="webhook-path"
+                  type="text"
+                  value={
+                    config.webhookPath ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "webhookPath",
+                      event.target.value
+                    )
+                  }
+                  placeholder="my-webhook"
+                />
+
+                <small className="config-help">
+                  Use a simple path such as
+                  {" "}
+                  /my-webhook.
+                  {" "}
+                  FlowForge will expose the
+                  final endpoint from this path.
+                </small>
+              </div>
+
+              <div className="config-field">
+                <label htmlFor="webhook-secret">
+                  Webhook secret
+                </label>
+
+                <input
+                  id="webhook-secret"
+                  type="password"
+                  value={
+                    config.webhookSecret ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "webhookSecret",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Optional secret"
+                  autoComplete="new-password"
+                />
+
+                <small className="config-help">
+                  Optional verification secret.
+                  We will use this later to
+                  authenticate incoming requests.
+                </small>
+              </div>
+
+              <div className="config-field">
+                <label htmlFor="webhook-description">
+                  Description
+                </label>
+
+                <textarea
+                  id="webhook-description"
+                  value={
+                    config.webhookDescription ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "webhookDescription",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Receives an order event and starts the workflow."
+                  rows="4"
+                />
+
+                <small className="config-help">
+                  Describe what this webhook is
+                  expected to receive.
+                </small>
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {nodeType ===
-        "schedule" && (
+      {nodeType === "schedule" && (
         <div className="node-config-section">
-
-          <div
-            className="config-field"
-            style={{
-              marginBottom:
-                "16px"
-            }}
-          >
+          <div className="config-field">
             <label>
               Scheduler status
             </label>
 
-            <div
-              style={{
-                display:
-                  "flex",
-
-                alignItems:
-                  "center",
-
-                gap:
-                  "8px",
-
-                padding:
-                  "10px 12px",
-
-                border:
-                  "1px solid var(--border-color, #ddd)",
-
-                borderRadius:
-                  "8px"
-              }}
-            >
+            <div className="schedule-status">
               <span
+                className="schedule-status-dot"
                 style={{
-                  width:
-                    "9px",
-
-                  height:
-                    "9px",
-
-                  borderRadius:
-                    "50%",
-
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  display: "inline-block",
+                  marginRight: "8px",
                   backgroundColor:
                     scheduleStatusLoading
                       ? "#999"
-                      : scheduleStatus.active
-                      ? "#22c55e"
-                      : "#9ca3af",
-
-                  flexShrink:
-                    0
+                      : scheduleActive
+                        ? "#22c55e"
+                        : "#999"
                 }}
               />
 
-              <strong>
+              <span>
                 {scheduleStatusLoading
-                  ? "Checking..."
-                  : scheduleStatus.active
-                  ? "Active"
-                  : "Inactive"}
-              </strong>
+                  ? "Checking"
+                  : scheduleActive
+                    ? "Active"
+                    : "Inactive"}
+              </span>
             </div>
 
-            {scheduleStatus.active &&
-              formattedNextRun && (
-                <small className="config-help">
-                  Next run:{" "}
-                  {
-                    formattedNextRun
-                  }
-                </small>
-              )}
-
-            {!scheduleStatus.active && (
+            {formattedNextRun && (
               <small className="config-help">
-                The scheduler is inactive.
-                Publish the workflow with
-                scheduling enabled to activate it.
+                Next run:{" "}
+                {formattedNextRun}
               </small>
             )}
+
+            {!scheduleStatusLoading &&
+              !scheduleActive && (
+                <small className="config-help">
+                  Publish the workflow with an
+                  enabled schedule to activate it.
+                </small>
+              )}
           </div>
 
           <div className="config-field">
-
             <label htmlFor="schedule-type">
-              Schedule
+              Schedule type
             </label>
 
             <select
               id="schedule-type"
-              value={
-                config.scheduleType ||
-                "daily"
-              }
-              onChange={(
-                event
-              ) =>
+              value={scheduleType}
+              onChange={(event) =>
                 updateConfig(
                   "scheduleType",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
             >
               <option value="interval">
-                Every interval
+                Every X minutes
               </option>
 
               <option value="hourly">
-                Every hour
+                Hourly
               </option>
 
               <option value="daily">
-                Every day
+                Daily
               </option>
 
               <option value="weekly">
-                Every week
+                Weekly
               </option>
 
               <option value="cron">
-                Custom cron
+                Cron
               </option>
             </select>
-
           </div>
 
-          {(
-            config.scheduleType ||
-            "daily"
-          ) === "interval" && (
+          {scheduleType === "interval" && (
             <div className="config-field">
-
               <label htmlFor="schedule-interval">
-                Interval
+                Interval in minutes
               </label>
 
               <input
                 id="schedule-interval"
                 type="number"
                 min="1"
-                step="1"
                 value={
                   config.intervalMinutes ||
-                  30
+                  5
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   updateConfig(
                     "intervalMinutes",
                     Math.max(
                       1,
                       Number(
-                        event.target
-                          .value
+                        event.target.value
                       ) || 1
                     )
                   )
                 }
               />
-
-              <small className="config-help">
-                Run the workflow every
-                specified number of minutes.
-              </small>
-
             </div>
           )}
 
-          {(
-            config.scheduleType ||
-            "daily"
-          ) === "hourly" && (
+          {scheduleType === "hourly" && (
             <div className="config-field">
-
               <label htmlFor="schedule-minute">
                 Minute
               </label>
@@ -390,14 +396,10 @@ function NodeConfigPanel({
                 type="number"
                 min="0"
                 max="59"
-                step="1"
                 value={
-                  config.minute ??
-                  0
+                  config.minute ?? 0
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   updateConfig(
                     "minute",
                     Math.min(
@@ -405,66 +407,92 @@ function NodeConfigPanel({
                       Math.max(
                         0,
                         Number(
-                          event.target
-                            .value
+                          event.target.value
                         ) || 0
                       )
                     )
                   )
                 }
               />
-
-              <small className="config-help">
-                Example: 15 means every
-                hour at xx:15.
-              </small>
-
             </div>
           )}
 
-          {(
-            config.scheduleType ||
-            "daily"
-          ) === "daily" && (
-            <div className="config-field">
-
-              <label htmlFor="schedule-time">
-                Time
-              </label>
-
-              <input
-                id="schedule-time"
-                type="time"
-                value={
-                  config.time ||
-                  "09:00"
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateConfig(
-                    "time",
-                    event.target
-                      .value
-                  )
-                }
-              />
-
-              <small className="config-help">
-                The workflow will run every
-                day at this time.
-              </small>
-
-            </div>
-          )}
-
-          {(
-            config.scheduleType ||
-            "daily"
-          ) === "weekly" && (
+          {scheduleType === "daily" && (
             <>
               <div className="config-field">
+                <label htmlFor="schedule-time">
+                  Time
+                </label>
 
+                <input
+                  id="schedule-time"
+                  type="time"
+                  value={
+                    config.time ||
+                    "09:00"
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "time",
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div className="config-field">
+                <label htmlFor="schedule-timezone">
+                  Timezone
+                </label>
+
+                <select
+                  id="schedule-timezone"
+                  value={
+                    config.timezone ||
+                    "Asia/Kolkata"
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "timezone",
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="Asia/Kolkata">
+                    Asia/Kolkata
+                  </option>
+
+                  <option value="UTC">
+                    UTC
+                  </option>
+
+                  <option value="America/New_York">
+                    America/New_York
+                  </option>
+
+                  <option value="America/Los_Angeles">
+                    America/Los_Angeles
+                  </option>
+
+                  <option value="Europe/London">
+                    Europe/London
+                  </option>
+
+                  <option value="Europe/Berlin">
+                    Europe/Berlin
+                  </option>
+
+                  <option value="Asia/Tokyo">
+                    Asia/Tokyo
+                  </option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {scheduleType === "weekly" && (
+            <>
+              <div className="config-field">
                 <label htmlFor="schedule-day">
                   Day
                 </label>
@@ -475,13 +503,10 @@ function NodeConfigPanel({
                     config.dayOfWeek ||
                     "monday"
                   }
-                  onChange={(
-                    event
-                  ) =>
+                  onChange={(event) =>
                     updateConfig(
                       "dayOfWeek",
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
@@ -513,11 +538,9 @@ function NodeConfigPanel({
                     Sunday
                   </option>
                 </select>
-
               </div>
 
               <div className="config-field">
-
                 <label htmlFor="schedule-weekly-time">
                   Time
                 </label>
@@ -529,140 +552,160 @@ function NodeConfigPanel({
                     config.time ||
                     "09:00"
                   }
-                  onChange={(
-                    event
-                  ) =>
+                  onChange={(event) =>
                     updateConfig(
                       "time",
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 />
+              </div>
 
+              <div className="config-field">
+                <label htmlFor="schedule-weekly-timezone">
+                  Timezone
+                </label>
+
+                <select
+                  id="schedule-weekly-timezone"
+                  value={
+                    config.timezone ||
+                    "Asia/Kolkata"
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "timezone",
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="Asia/Kolkata">
+                    Asia/Kolkata
+                  </option>
+
+                  <option value="UTC">
+                    UTC
+                  </option>
+
+                  <option value="America/New_York">
+                    America/New_York
+                  </option>
+
+                  <option value="America/Los_Angeles">
+                    America/Los_Angeles
+                  </option>
+
+                  <option value="Europe/London">
+                    Europe/London
+                  </option>
+
+                  <option value="Europe/Berlin">
+                    Europe/Berlin
+                  </option>
+
+                  <option value="Asia/Tokyo">
+                    Asia/Tokyo
+                  </option>
+                </select>
               </div>
             </>
           )}
 
-          {(
-            config.scheduleType ||
-            "daily"
-          ) === "cron" && (
-            <div className="config-field">
+          {scheduleType === "cron" && (
+            <>
+              <div className="config-field">
+                <label htmlFor="schedule-cron">
+                  Cron expression
+                </label>
 
-              <label htmlFor="schedule-cron">
-                Cron expression
-              </label>
+                <input
+                  id="schedule-cron"
+                  type="text"
+                  value={
+                    config.cron ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "cron",
+                      event.target.value
+                    )
+                  }
+                  placeholder="0 0 * * * *"
+                />
 
-              <input
-                id="schedule-cron"
-                type="text"
-                value={
-                  config.cron ||
-                  "0 9 * * *"
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateConfig(
-                    "cron",
-                    event.target
-                      .value
-                  )
-                }
-                placeholder="0 9 * * *"
-              />
+                <small className="config-help">
+                  Cron format:
+                  second minute hour day month weekday.
+                </small>
+              </div>
 
-              <small className="config-help">
-                Example: 0 9 * * *
-                runs every day at 9:00 AM.
-              </small>
+              <div className="config-field">
+                <label htmlFor="schedule-cron-timezone">
+                  Timezone
+                </label>
 
-            </div>
+                <select
+                  id="schedule-cron-timezone"
+                  value={
+                    config.timezone ||
+                    "Asia/Kolkata"
+                  }
+                  onChange={(event) =>
+                    updateConfig(
+                      "timezone",
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="Asia/Kolkata">
+                    Asia/Kolkata
+                  </option>
+
+                  <option value="UTC">
+                    UTC
+                  </option>
+
+                  <option value="America/New_York">
+                    America/New_York
+                  </option>
+
+                  <option value="America/Los_Angeles">
+                    America/Los_Angeles
+                  </option>
+
+                  <option value="Europe/London">
+                    Europe/London
+                  </option>
+
+                  <option value="Europe/Berlin">
+                    Europe/Berlin
+                  </option>
+
+                  <option value="Asia/Tokyo">
+                    Asia/Tokyo
+                  </option>
+                </select>
+              </div>
+            </>
           )}
 
           <div className="config-field">
-
-            <label htmlFor="schedule-timezone">
-              Timezone
-            </label>
-
-            <select
-              id="schedule-timezone"
-              value={
-                config.timezone ||
-                "Asia/Kolkata"
-              }
-              onChange={(
-                event
-              ) =>
-                updateConfig(
-                  "timezone",
-                  event.target
-                    .value
-                )
-              }
-            >
-              <option value="Asia/Kolkata">
-                Asia/Kolkata (IST)
-              </option>
-
-              <option value="UTC">
-                UTC
-              </option>
-
-              <option value="America/New_York">
-                America/New_York
-              </option>
-
-              <option value="America/Los_Angeles">
-                America/Los_Angeles
-              </option>
-
-              <option value="Europe/London">
-                Europe/London
-              </option>
-
-              <option value="Europe/Berlin">
-                Europe/Berlin
-              </option>
-
-              <option value="Asia/Singapore">
-                Asia/Singapore
-              </option>
-
-              <option value="Asia/Tokyo">
-                Asia/Tokyo
-              </option>
-            </select>
-
-            <small className="config-help">
-              The schedule will use this
-              timezone.
-            </small>
-
-          </div>
-
-          <div className="config-field">
-
-            <label>
+            <label htmlFor="schedule-enabled">
               Status
             </label>
 
             <select
+              id="schedule-enabled"
               value={
-                config.enabled !==
-                false
+                scheduleEnabled
                   ? "enabled"
                   : "disabled"
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "enabled",
-                  event.target
-                    .value ===
+                  event.target.value ===
                     "enabled"
                 )
               }
@@ -675,38 +718,24 @@ function NodeConfigPanel({
                 Disabled
               </option>
             </select>
-
-            <small className="config-help">
-              Scheduling only becomes active
-              for a published workflow.
-            </small>
-
           </div>
-
         </div>
       )}
 
       {nodeType === "http" && (
         <div className="node-config-section">
-
           <div className="config-field">
-
             <label htmlFor="http-method">
               Method
             </label>
 
             <select
               id="http-method"
-              value={
-                httpMethod
-              }
-              onChange={(
-                event
-              ) =>
+              value={httpMethod}
+              onChange={(event) =>
                 updateConfig(
                   "method",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
             >
@@ -730,11 +759,9 @@ function NodeConfigPanel({
                 DELETE
               </option>
             </select>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="http-url">
               URL
             </label>
@@ -743,16 +770,12 @@ function NodeConfigPanel({
               id="http-url"
               type="text"
               value={
-                config.url ||
-                ""
+                config.url || ""
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "url",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
               placeholder="https://api.example.com/users/{{data.id}}"
@@ -762,11 +785,9 @@ function NodeConfigPanel({
               Use {"{{data.field}}"} to reference
               data from the previous node.
             </small>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="http-timeout">
               Timeout
             </label>
@@ -777,27 +798,19 @@ function NodeConfigPanel({
               min="1"
               max="120"
               step="1"
-              value={
-                timeoutSeconds
-              }
-              onChange={(
-                event
-              ) => {
+              value={timeoutSeconds}
+              onChange={(event) => {
                 const seconds =
                   Number(
-                    event.target
-                      .value
+                    event.target.value
                   );
 
                 updateConfig(
                   "timeoutMs",
-                  Number.isFinite(
-                    seconds
-                  ) &&
-                  seconds > 0
+                  Number.isFinite(seconds) &&
+                    seconds > 0
                     ? Math.min(
-                        seconds *
-                          1000,
+                        seconds * 1000,
                         120000
                       )
                     : 10000
@@ -809,11 +822,9 @@ function NodeConfigPanel({
               Maximum time to wait for one
               request. Default: 10 seconds.
             </small>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="http-retries">
               Retries
             </label>
@@ -824,28 +835,19 @@ function NodeConfigPanel({
               min="0"
               max="5"
               step="1"
-              value={
-                retryCount
-              }
-              onChange={(
-                event
-              ) => {
+              value={retryCount}
+              onChange={(event) => {
                 const retries =
                   Number(
-                    event.target
-                      .value
+                    event.target.value
                   );
 
                 updateConfig(
                   "retries",
-                  Number.isFinite(
-                    retries
-                  ) &&
-                  retries >= 0
+                  Number.isFinite(retries) &&
+                    retries >= 0
                     ? Math.min(
-                        Math.floor(
-                          retries
-                        ),
+                        Math.floor(retries),
                         5
                       )
                     : 0
@@ -854,15 +856,12 @@ function NodeConfigPanel({
             />
 
             <small className="config-help">
-              Number of additional attempts
-              after a retryable failure.
-              Maximum: 5.
+              Number of additional attempts after
+              a retryable failure. Maximum: 5.
             </small>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="http-body">
               Request body
             </label>
@@ -872,16 +871,12 @@ function NodeConfigPanel({
                 <textarea
                   id="http-body"
                   value={
-                    config.body ||
-                    ""
+                    config.body || ""
                   }
-                  onChange={(
-                    event
-                  ) =>
+                  onChange={(event) =>
                     updateConfig(
                       "body",
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                   placeholder={`{
@@ -905,11 +900,9 @@ function NodeConfigPanel({
                 {httpMethod} requests.
               </div>
             )}
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="http-headers">
               Headers
             </label>
@@ -917,16 +910,12 @@ function NodeConfigPanel({
             <textarea
               id="http-headers"
               value={
-                config.headers ||
-                ""
+                config.headers || ""
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "headers",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
               placeholder={`{
@@ -941,18 +930,13 @@ function NodeConfigPanel({
               Variables from the previous node
               are supported.
             </small>
-
           </div>
-
         </div>
       )}
 
-      {nodeType ===
-        "condition" && (
+      {nodeType === "condition" && (
         <div className="node-config-section">
-
           <div className="config-field">
-
             <label htmlFor="condition-field">
               Field
             </label>
@@ -961,16 +945,12 @@ function NodeConfigPanel({
               id="condition-field"
               type="text"
               value={
-                config.field ||
-                ""
+                config.field || ""
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "field",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
               placeholder="status"
@@ -979,11 +959,9 @@ function NodeConfigPanel({
             <small className="config-help">
               Example: data.id
             </small>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="condition-operator">
               Operator
             </label>
@@ -994,13 +972,10 @@ function NodeConfigPanel({
                 config.operator ||
                 "equals"
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "operator",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
             >
@@ -1024,11 +999,9 @@ function NodeConfigPanel({
                 Less than
               </option>
             </select>
-
           </div>
 
           <div className="config-field">
-
             <label htmlFor="condition-value">
               Value
             </label>
@@ -1037,26 +1010,19 @@ function NodeConfigPanel({
               id="condition-value"
               type="text"
               value={
-                config.value ||
-                ""
+                config.value || ""
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 updateConfig(
                   "value",
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
               placeholder="200"
             />
-
           </div>
-
         </div>
       )}
-
     </aside>
   );
 }
