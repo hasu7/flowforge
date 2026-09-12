@@ -53,6 +53,7 @@ export const register = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Account created successfully",
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -111,6 +112,7 @@ export const login = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Logged in successfully",
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -155,4 +157,3 @@ export const logout = async (req, res) => {
     message: "Logged out successfully"
   });
 };
-

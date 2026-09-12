@@ -4,7 +4,21 @@ import User from "../models/user.js";
 
 const protect = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    let token = null;
+
+    const authorization =
+      req.headers.authorization;
+
+    if (
+      authorization &&
+      authorization.startsWith("Bearer ")
+    ) {
+      token = authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      token = req.cookies.token;
+    }
 
     if (!token) {
       return res.status(401).json({
@@ -35,7 +49,8 @@ const protect = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired authentication token"
+      message:
+        "Invalid or expired authentication token"
     });
   }
 };
