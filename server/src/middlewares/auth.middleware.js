@@ -1,37 +1,139 @@
-import jwt from "jsonwebtoken";
+
+import bcrypt from "bcryptjs";
 import User from "../models/user.js";
+import { generateToken } from "../utils/auth.js";
 
-const protect = async (req, res, next) => {
+const setAuthCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite:
+      process.env.NODE_ENV === "production"
+        ? "none"
+        : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+};
+
+export const register = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const { name, email, password } = req.body;
 
-    if (!token) {
-      return res.status(401).json({
+    const existingUser = await User.findOne({
+      email
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
         success: false,
-        message: "Authentication required"
+        message: "An account with this email already exists"
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await User.findById(decoded.userId).select("-passwordHash");
+    const user = await User.create({
+      name,
+      email,
+      passwordHash
+    });
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User no longer exists"
-      });
-    }
+    const token = generateToken(user._id.toString());
 
-    req.user = user;
+    setAuthCookie(res, token);
 
-    next();
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
   } catch (error) {
-    return res.status(401).json({
+    console.error("Registration error:", error);
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired authentication token"
+      message: "Failed to create account"
     });
   }
 };
 
-export default protect;
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({
+      email
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
+    if (!passwordMatches) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    const token = generateToken(user._id.toString());
+
+    setAuthCookie(res, token);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to log in"
+    });
+  }
+};
+
+export const getMe = async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email
+    }
+  });
+};
+
+export const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite:
+      process.env.NODE_ENV === "production"
+        ? "none"
+        : "lax"
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully"
+  });
+};
