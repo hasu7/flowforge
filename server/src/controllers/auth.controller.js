@@ -1,12 +1,18 @@
+
 import bcrypt from "bcryptjs";
 import User from "../models/user.js";
 import { generateToken } from "../utils/auth.js";
 
+const isProduction =
+  process.env.CLIENT_URL?.startsWith("https://");
+
 const setAuthCookie = (res, token) => {
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction
+      ? "none"
+      : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 };
@@ -22,11 +28,15 @@ export const register = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "An account with this email already exists"
+        message:
+          "An account with this email already exists"
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(
+      password,
+      12
+    );
 
     const user = await User.create({
       name,
@@ -34,7 +44,9 @@ export const register = async (req, res) => {
       passwordHash
     });
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(
+      user._id.toString()
+    );
 
     setAuthCookie(res, token);
 
@@ -48,7 +60,10 @@ export const register = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error(
+      "Registration error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -68,23 +83,28 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message:
+          "Invalid email or password"
       });
     }
 
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
+    const passwordMatches =
+      await bcrypt.compare(
+        password,
+        user.passwordHash
+      );
 
     if (!passwordMatches) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message:
+          "Invalid email or password"
       });
     }
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(
+      user._id.toString()
+    );
 
     setAuthCookie(res, token);
 
@@ -98,7 +118,10 @@ export const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error(
+      "Login error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -119,10 +142,17 @@ export const getMe = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction
+      ? "none"
+      : "lax"
+  });
 
   return res.status(200).json({
     success: true,
     message: "Logged out successfully"
   });
 };
+
