@@ -4,19 +4,37 @@ function WorkflowCard({ workflow }) {
   const navigate = useNavigate();
 
   const handleOpen = () => {
-    navigate(`/dashboard/editor/${workflow._id}`);
+    navigate(
+      `/dashboard/editor/${workflow._id}`
+    );
   };
+
+  const isPublished =
+    workflow.status === "published";
 
   return (
     <div
       className="workflow-card"
       onClick={handleOpen}
+      onKeyDown={(event) => {
+        if (
+          event.key === "Enter" ||
+          event.key === " "
+        ) {
+          event.preventDefault();
+          handleOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <div className="workflow-card-header">
         <h3>{workflow.name}</h3>
 
         <span className="workflow-status">
-          DRAFT
+          {isPublished
+            ? "PUBLISHED"
+            : "DRAFT"}
         </span>
       </div>
 

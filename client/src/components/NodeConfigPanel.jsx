@@ -22,7 +22,9 @@ function NodeConfigPanel({
     return (
       <aside className="node-config-panel">
         <div className="node-config-empty">
-          <h3>Node Configuration</h3>
+          <h3>
+            Node Configuration
+          </h3>
 
           <p>
             Select a node to configure it.
@@ -119,7 +121,7 @@ function NodeConfigPanel({
   const webhookBaseUrl =
     api.defaults.baseURL
       ? api.defaults.baseURL.replace(
-          /\/$/,
+          /\/+$/,
           ""
         )
       : "";
@@ -262,12 +264,10 @@ function NodeConfigPanel({
                 />
 
                 <small className="config-help">
-                  Use a simple path such as
-                  {" "}
-                  /my-webhook.
-                  {" "}
-                  FlowForge will expose the
-                  final endpoint from this path.
+                  Use a simple path such as{" "}
+                  /my-webhook. FlowForge will
+                  expose the final endpoint from
+                  this path.
                 </small>
               </div>
 
@@ -343,11 +343,8 @@ function NodeConfigPanel({
 
                 <small className="config-help">
                   Optional verification secret.
-                  Send it using the
-                  {" "}
-                  x-webhook-secret
-                  {" "}
-                  request header.
+                  Send it using the{" "}
+                  x-webhook-secret request header.
                 </small>
               </div>
 
@@ -531,76 +528,26 @@ function NodeConfigPanel({
           )}
 
           {scheduleType === "daily" && (
-            <>
-              <div className="config-field">
-                <label htmlFor="schedule-time">
-                  Time
-                </label>
+            <div className="config-field">
+              <label htmlFor="schedule-time">
+                Time
+              </label>
 
-                <input
-                  id="schedule-time"
-                  type="time"
-                  value={
-                    config.time ||
-                    "09:00"
-                  }
-                  onChange={(event) =>
-                    updateConfig(
-                      "time",
-                      event.target.value
-                    )
-                  }
-                />
-              </div>
-
-              <div className="config-field">
-                <label htmlFor="schedule-timezone">
-                  Timezone
-                </label>
-
-                <select
-                  id="schedule-timezone"
-                  value={
-                    config.timezone ||
-                    "Asia/Kolkata"
-                  }
-                  onChange={(event) =>
-                    updateConfig(
-                      "timezone",
-                      event.target.value
-                    )
-                  }
-                >
-                  <option value="Asia/Kolkata">
-                    Asia/Kolkata
-                  </option>
-
-                  <option value="UTC">
-                    UTC
-                  </option>
-
-                  <option value="America/New_York">
-                    America/New_York
-                  </option>
-
-                  <option value="America/Los_Angeles">
-                    America/Los_Angeles
-                  </option>
-
-                  <option value="Europe/London">
-                    Europe/London
-                  </option>
-
-                  <option value="Europe/Berlin">
-                    Europe/Berlin
-                  </option>
-
-                  <option value="Asia/Tokyo">
-                    Asia/Tokyo
-                  </option>
-                </select>
-              </div>
-            </>
+              <input
+                id="schedule-time"
+                type="time"
+                value={
+                  config.time ||
+                  "09:00"
+                }
+                onChange={(event) =>
+                  updateConfig(
+                    "time",
+                    event.target.value
+                  )
+                }
+              />
+            </div>
           )}
 
           {scheduleType === "weekly" && (
@@ -673,135 +620,90 @@ function NodeConfigPanel({
                   }
                 />
               </div>
-
-              <div className="config-field">
-                <label htmlFor="schedule-weekly-timezone">
-                  Timezone
-                </label>
-
-                <select
-                  id="schedule-weekly-timezone"
-                  value={
-                    config.timezone ||
-                    "Asia/Kolkata"
-                  }
-                  onChange={(event) =>
-                    updateConfig(
-                      "timezone",
-                      event.target.value
-                    )
-                  }
-                >
-                  <option value="Asia/Kolkata">
-                    Asia/Kolkata
-                  </option>
-
-                  <option value="UTC">
-                    UTC
-                  </option>
-
-                  <option value="America/New_York">
-                    America/New_York
-                  </option>
-
-                  <option value="America/Los_Angeles">
-                    America/Los_Angeles
-                  </option>
-
-                  <option value="Europe/London">
-                    Europe/London
-                  </option>
-
-                  <option value="Europe/Berlin">
-                    Europe/Berlin
-                  </option>
-
-                  <option value="Asia/Tokyo">
-                    Asia/Tokyo
-                  </option>
-                </select>
-              </div>
             </>
           )}
 
           {scheduleType === "cron" && (
-            <>
-              <div className="config-field">
-                <label htmlFor="schedule-cron">
-                  Cron expression
-                </label>
+            <div className="config-field">
+              <label htmlFor="schedule-cron">
+                Cron expression
+              </label>
 
-                <input
-                  id="schedule-cron"
-                  type="text"
-                  value={
-                    config.cron ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateConfig(
-                      "cron",
-                      event.target.value
-                    )
-                  }
-                  placeholder="0 0 * * * *"
-                />
+              <input
+                id="schedule-cron"
+                type="text"
+                value={
+                  config.cron ||
+                  ""
+                }
+                onChange={(event) =>
+                  updateConfig(
+                    "cron",
+                    event.target.value
+                  )
+                }
+                placeholder="0 0 * * * *"
+              />
 
-                <small className="config-help">
-                  Cron format:
-                  second minute hour day month weekday.
-                </small>
-              </div>
-
-              <div className="config-field">
-                <label htmlFor="schedule-cron-timezone">
-                  Timezone
-                </label>
-
-                <select
-                  id="schedule-cron-timezone"
-                  value={
-                    config.timezone ||
-                    "Asia/Kolkata"
-                  }
-                  onChange={(event) =>
-                    updateConfig(
-                      "timezone",
-                      event.target.value
-                    )
-                  }
-                >
-                  <option value="Asia/Kolkata">
-                    Asia/Kolkata
-                  </option>
-
-                  <option value="UTC">
-                    UTC
-                  </option>
-
-                  <option value="America/New_York">
-                    America/New_York
-                  </option>
-
-                  <option value="America/Los_Angeles">
-                    America/Los_Angeles
-                  </option>
-
-                  <option value="Europe/London">
-                    Europe/London
-                  </option>
-
-                  <option value="Europe/Berlin">
-                    Europe/Berlin
-                  </option>
-
-                  <option value="Asia/Tokyo">
-                    Asia/Tokyo
-                  </option>
-                </select>
-              </div>
-            </>
+              <small className="config-help">
+                Cron format: second minute hour
+                day month weekday.
+              </small>
+            </div>
           )}
+
+          <div className="config-field">
+            <label htmlFor="schedule-timezone">
+              Timezone
+            </label>
+
+            <select
+              id="schedule-timezone"
+              value={
+                config.timezone ||
+                "Asia/Kolkata"
+              }
+              onChange={(event) =>
+                updateConfig(
+                  "timezone",
+                  event.target.value
+                )
+              }
+            >
+              <option value="Asia/Kolkata">
+                Asia/Kolkata
+              </option>
+
+              <option value="UTC">
+                UTC
+              </option>
+
+              <option value="America/New_York">
+                America/New_York
+              </option>
+
+              <option value="America/Los_Angeles">
+                America/Los_Angeles
+              </option>
+
+              <option value="Europe/London">
+                Europe/London
+              </option>
+
+              <option value="Europe/Berlin">
+                Europe/Berlin
+              </option>
+
+              <option value="Asia/Tokyo">
+                Asia/Tokyo
+              </option>
+            </select>
+
+            <small className="config-help">
+              The timezone used to calculate
+              scheduled execution times.
+            </small>
+          </div>
 
           <div className="config-field">
             <label htmlFor="schedule-enabled">
@@ -960,7 +862,9 @@ function NodeConfigPanel({
                   Number.isFinite(retries) &&
                     retries >= 0
                     ? Math.min(
-                        Math.floor(retries),
+                        Math.floor(
+                          retries
+                        ),
                         5
                       )
                     : 0

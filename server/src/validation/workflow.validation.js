@@ -9,6 +9,7 @@ const timeSchema = z
 
 const timezoneSchema = z
   .string()
+  .trim()
   .min(1, "Timezone is required");
 
 const scheduleConfigSchema = z
@@ -82,10 +83,8 @@ const scheduleConfigSchema = z
   })
   .superRefine((config, ctx) => {
     if (
-      config.scheduleType ===
-        "interval" &&
-      config.intervalMinutes ===
-        undefined
+      config.scheduleType === "interval" &&
+      config.intervalMinutes === undefined
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -96,8 +95,7 @@ const scheduleConfigSchema = z
     }
 
     if (
-      config.scheduleType ===
-        "hourly" &&
+      config.scheduleType === "hourly" &&
       config.minute === undefined
     ) {
       ctx.addIssue({
@@ -109,8 +107,7 @@ const scheduleConfigSchema = z
     }
 
     if (
-      config.scheduleType ===
-        "daily" &&
+      config.scheduleType === "daily" &&
       config.time === undefined
     ) {
       ctx.addIssue({
@@ -122,12 +119,10 @@ const scheduleConfigSchema = z
     }
 
     if (
-      config.scheduleType ===
-        "weekly"
+      config.scheduleType === "weekly"
     ) {
       if (
-        config.dayOfWeek ===
-        undefined
+        config.dayOfWeek === undefined
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -138,8 +133,7 @@ const scheduleConfigSchema = z
       }
 
       if (
-        config.time ===
-        undefined
+        config.time === undefined
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -151,8 +145,7 @@ const scheduleConfigSchema = z
     }
 
     if (
-      config.scheduleType ===
-        "cron" &&
+      config.scheduleType === "cron" &&
       config.cron === undefined
     ) {
       ctx.addIssue({
@@ -166,9 +159,21 @@ const scheduleConfigSchema = z
 
 const nodeSchema = z
   .object({
-    id: z.string().min(1),
+    id: z
+      .string()
+      .trim()
+      .min(
+        1,
+        "Node ID is required"
+      ),
 
-    type: z.string().min(1),
+    type: z
+      .string()
+      .trim()
+      .min(
+        1,
+        "Node type is required"
+      ),
 
     position: z.object({
       x: z.number(),
@@ -176,11 +181,20 @@ const nodeSchema = z
     }),
 
     config: z
-      .record(z.string(), z.unknown())
+      .record(
+        z.string(),
+        z.unknown()
+      )
       .default({})
   })
   .superRefine((node, ctx) => {
-    if (node.type !== "schedule") {
+    const nodeType =
+      node.config?.nodeType ||
+      node.type;
+
+    if (
+      nodeType !== "schedule"
+    ) {
       return;
     }
 
@@ -190,26 +204,48 @@ const nodeSchema = z
       );
 
     if (!result.success) {
-      for (const issue of result
-        .error.issues) {
+      for (
+        const issue of
+          result.error.issues
+      ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code:
+            z.ZodIssueCode.custom,
           path: [
             "config",
             ...issue.path
           ],
-          message: issue.message
+          message:
+            issue.message
         });
       }
     }
   });
 
 const edgeSchema = z.object({
-  id: z.string().min(1),
+  id: z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Edge ID is required"
+    ),
 
-  source: z.string().min(1),
+  source: z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Edge source is required"
+    ),
 
-  target: z.string().min(1),
+  target: z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Edge target is required"
+    ),
 
   sourceHandle: z
     .string()
@@ -252,14 +288,23 @@ export const updateWorkflowSchema =
     name: z
       .string()
       .trim()
-      .min(1)
-      .max(100)
+      .min(
+        1,
+        "Workflow name is required"
+      )
+      .max(
+        100,
+        "Workflow name cannot exceed 100 characters"
+      )
       .optional(),
 
     description: z
       .string()
       .trim()
-      .max(500)
+      .max(
+        500,
+        "Description cannot exceed 500 characters"
+      )
       .optional(),
 
     nodes: z

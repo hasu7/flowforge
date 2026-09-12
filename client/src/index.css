@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -45,7 +46,6 @@ button {
   width: 240px;
   min-height: 100vh;
   padding: 28px 16px;
-
   background: #151922;
   border-right: 1px solid #252a36;
 }
@@ -68,12 +68,9 @@ button {
 .sidebar-link {
   display: block;
   padding: 11px 12px;
-
   color: #9ba3b4;
   text-decoration: none;
-
   border-radius: 8px;
-
   transition:
     background 0.2s,
     color 0.2s;
@@ -105,11 +102,9 @@ button {
 .topbar {
   min-height: 88px;
   padding: 20px 32px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   border-bottom: 1px solid #252a36;
   background: #0f1117;
 }
@@ -121,7 +116,6 @@ button {
 
 .topbar-subtitle {
   margin-top: 4px;
-
   color: #8d95a5;
   font-size: 14px;
 }
@@ -139,10 +133,8 @@ button {
 
 .logout-button {
   padding: 9px 14px;
-
   background: transparent;
   color: #f5f7fa;
-
   border: 1px solid #343b49;
   border-radius: 7px;
 }
@@ -157,7 +149,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   margin-bottom: 28px;
 }
 
@@ -168,20 +159,16 @@ button {
 
 .dashboard-description {
   margin-top: 6px;
-
   color: #8d95a5;
   font-size: 14px;
 }
 
 .primary-button {
   padding: 10px 16px;
-
   background: #f5f7fa;
   color: #101218;
-
   border: none;
   border-radius: 7px;
-
   font-weight: 600;
 }
 
@@ -195,17 +182,14 @@ button {
   display: grid;
   grid-template-columns:
     repeat(auto-fill, minmax(280px, 1fr));
-
   gap: 18px;
 }
 
 .workflow-card {
   padding: 20px;
-
   background: #151922;
   border: 1px solid #252a36;
   border-radius: 10px;
-
   transition:
     border-color 0.2s,
     transform 0.2s;
@@ -220,30 +204,39 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-
   gap: 12px;
 }
 
 .workflow-card-header h3 {
   font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workflow-status {
+  flex-shrink: 0;
   padding: 4px 7px;
-
   background: #252c3a;
   color: #aeb7c8;
-
   border-radius: 5px;
-
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
+.workflow-status.published {
+  background: #14271d;
+  color: #6ed89b;
+}
+
+.workflow-status.draft {
+  background: #252c3a;
+  color: #aeb7c8;
+}
+
 .workflow-description {
   margin-top: 14px;
-
   color: #8d95a5;
   font-size: 14px;
   line-height: 1.5;
@@ -252,12 +245,9 @@ button {
 .workflow-card-footer {
   display: flex;
   gap: 16px;
-
   margin-top: 20px;
   padding-top: 14px;
-
   border-top: 1px solid #252a36;
-
   color: #737c8e;
   font-size: 12px;
 }
@@ -274,7 +264,6 @@ button {
 
 .workflow-form {
   padding: 24px;
-
   background: #151922;
   border: 1px solid #252a36;
   border-radius: 10px;
@@ -284,7 +273,6 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-
   margin-bottom: 20px;
 }
 
@@ -298,13 +286,10 @@ button {
 .form-group textarea {
   width: 100%;
   padding: 11px 12px;
-
   background: #0f1117;
   color: #f5f7fa;
-
   border: 1px solid #343b49;
   border-radius: 7px;
-
   outline: none;
 }
 
@@ -325,13 +310,10 @@ button {
 .form-error {
   margin-bottom: 18px;
   padding: 12px;
-
   background: #29191c;
   color: #ff9da5;
-
   border: 1px solid #51252a;
   border-radius: 7px;
-
   font-size: 14px;
 }
 
@@ -339,16 +321,13 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-
   margin-top: 28px;
 }
 
 .secondary-button {
   padding: 10px 16px;
-
   background: transparent;
   color: #dce1e9;
-
   border: 1px solid #343b49;
   border-radius: 7px;
 }
@@ -367,20 +346,16 @@ button {
 
 .editor-page {
   height: calc(100vh - 88px);
-
   display: flex;
   flex-direction: column;
 }
 
 .editor-toolbar {
   min-height: 78px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 16px 24px;
-
   background: #151922;
   border: 1px solid #252a36;
   border-radius: 10px 10px 0 0;
@@ -393,7 +368,6 @@ button {
 
 .editor-subtitle {
   margin-top: 4px;
-
   color: #8d95a5;
   font-size: 13px;
 }
@@ -406,11 +380,9 @@ button {
 
 .editor-container {
   flex: 1;
-
+  min-width: 0;
   min-height: 0;
-
   background: #0b0d12;
-
   border-left: 1px solid #252a36;
   border-right: 1px solid #252a36;
   border-bottom: 1px solid #252a36;
@@ -420,18 +392,14 @@ button {
 
 .editor-workspace {
   flex: 1;
-
   min-height: 0;
-
   display: flex;
 }
 
 .node-palette {
   width: 240px;
   flex-shrink: 0;
-
   padding: 20px;
-
   background: #151922;
   border-left: 1px solid #252a36;
   border-right: 1px solid #252a36;
@@ -444,7 +412,6 @@ button {
 
 .node-palette-header p {
   margin-top: 6px;
-
   color: #737c8e;
   font-size: 12px;
   line-height: 1.5;
@@ -454,28 +421,20 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-
   margin-top: 20px;
 }
 
 .node-palette-item {
   width: 100%;
-
   display: flex;
   align-items: center;
-
   gap: 12px;
-
   padding: 12px;
-
   background: #1b202b;
   color: #f5f7fa;
-
   border: 1px solid #2b3240;
   border-radius: 8px;
-
   text-align: left;
-
   transition:
     background 0.2s,
     border-color 0.2s;
@@ -489,14 +448,11 @@ button {
 .node-icon {
   width: 30px;
   height: 30px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: #252c3a;
   border-radius: 6px;
-
   font-size: 15px;
 }
 
@@ -519,56 +475,41 @@ button {
 
 .editor-container {
   flex: 1;
-
   min-width: 0;
   min-height: 0;
-
   background: #0b0d12;
-
   border-right: 1px solid #252a36;
   border-bottom: 1px solid #252a36;
 }
-
 
 /* Flow Nodes */
 
 .flow-node {
   min-width: 210px;
-
   background: #151922;
-
   border: 1px solid #343b49;
   border-radius: 9px;
-
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.25);
-
   overflow: hidden;
 }
 
 .flow-node-header {
   display: flex;
   align-items: center;
-
   gap: 9px;
-
   padding: 12px 14px;
-
   border-bottom: 1px solid #252a36;
 }
 
 .flow-node-icon {
   width: 28px;
   height: 28px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: #252c3a;
-
   border-radius: 6px;
-
   font-size: 14px;
 }
 
@@ -579,24 +520,18 @@ button {
 
 .flow-node-description {
   padding: 11px 14px;
-
   color: #737c8e;
-
   font-size: 11px;
   line-height: 1.4;
 }
 
 .flow-node-output {
   position: relative;
-
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
   padding: 5px 14px;
-
   color: #8d95a5;
-
   font-size: 10px;
 }
 
@@ -607,9 +542,7 @@ button {
 .flow-node .react-flow__handle {
   width: 8px;
   height: 8px;
-
   background: #8d95a5;
-
   border: 2px solid #151922;
 }
 
@@ -632,6 +565,8 @@ button {
   color: #ff9da5;
   font-size: 12px;
 }
+
+/* Node Config Panel */
 
 .node-config-panel {
   width: 280px;
@@ -696,13 +631,16 @@ button {
 }
 
 .node-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding-top: 20px;
 }
 
 .config-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
   margin-bottom: 18px;
 }
 
@@ -713,8 +651,10 @@ button {
 }
 
 .config-field input,
-.config-field select {
+.config-field select,
+.config-field textarea {
   width: 100%;
+  box-sizing: border-box;
   padding: 9px 10px;
   background: #0f1117;
   color: #f5f7fa;
@@ -723,14 +663,39 @@ button {
   outline: none;
 }
 
+.config-field textarea {
+  resize: vertical;
+}
+
 .config-field input:focus,
-.config-field select:focus {
+.config-field select:focus,
+.config-field textarea:focus {
   border-color: #596579;
 }
 
-.config-field input::placeholder {
+.config-field input::placeholder,
+.config-field textarea::placeholder {
   color: #596273;
 }
+
+.config-help {
+  display: block;
+  margin-top: 6px;
+  color: #596273;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.config-disabled {
+  padding: 10px;
+  border-radius: 8px;
+  background: #222936;
+  color: #8d95a5;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Execution List */
 
 .execution-list {
   display: flex;
@@ -783,6 +748,8 @@ button {
   font-size: 12px;
 }
 
+/* Execution Status */
+
 .execution-status {
   display: inline-flex;
   align-items: center;
@@ -827,6 +794,8 @@ button {
   background: #e4bd63;
 }
 
+/* Empty State */
+
 .empty-state {
   padding: 50px 20px;
   background: #151922;
@@ -844,6 +813,8 @@ button {
   color: #737c8e;
   font-size: 13px;
 }
+
+/* Execution Detail */
 
 .execution-detail-page {
   display: flex;
@@ -932,6 +903,8 @@ button {
   color: #dba1a5;
   font-size: 12px;
 }
+
+/* Execution Nodes */
 
 .execution-nodes-section {
   display: flex;
@@ -1087,8 +1060,8 @@ button {
 .execution-data {
   margin-top: 12px;
   margin-left: 42px;
-  border-top: 1px solid #252a36;
   padding-top: 12px;
+  border-top: 1px solid #252a36;
 }
 
 .execution-data summary {
@@ -1117,61 +1090,275 @@ button {
   word-break: break-word;
 }
 
-
-.config-help {
-  display: block;
-  margin-top: 6px;
-  color: #596273;
-  font-size: 10px;
-  line-height: 1.4;
-}
-
-.node-config-panel {
-  overflow-y: auto;
-}
-
-.node-config-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.config-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.config-field input,
-.config-field select,
-.config-field textarea {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.config-field textarea {
-  resize: vertical;
-}
-
-.config-disabled {
-  padding: 10px;
-  border-radius: 8px;
-  background: #f1f3f5;
-  color: #697386;
-  font-size: 12px;
-  line-height: 1.4;
-}
+/* Workflow Version Info */
 
 .workflow-version-info {
   display: flex;
   gap: 12px;
   margin-top: 8px;
-  color: #697386;
+  color: #8d95a5;
   font-size: 11px;
 }
 
 .workflow-version-info span {
   padding: 4px 8px;
   border-radius: 6px;
-  background: #f1f3f5;
+  background: #222936;
+}
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  .node-palette {
+    width: 210px;
+  }
+
+  .node-config-panel {
+    width: 250px;
+  }
+
+  .dashboard-content {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 850px) {
+  .sidebar {
+    width: 190px;
+  }
+
+  .editor-workspace {
+    overflow-x: auto;
+  }
+
+  .node-palette,
+  .node-config-panel {
+    width: 220px;
+  }
+
+  .execution-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .execution-summary-item:nth-child(2) {
+    border-right: none;
+  }
+
+  .execution-summary-item:nth-child(-n + 2) {
+    border-bottom: 1px solid #252a36;
+  }
+}
+
+@media (max-width: 650px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid #252a36;
+  }
+
+  .sidebar-logo {
+    padding: 0 8px 16px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .sidebar-link {
+    white-space: nowrap;
+  }
+
+  .topbar {
+    min-height: auto;
+    padding: 16px 20px;
+  }
+
+  .topbar-email {
+    display: none;
+  }
+
+  .dashboard-content {
+    padding: 20px;
+  }
+
+  .dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .editor-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .execution-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .execution-summary-item {
+    border-right: none;
+    border-bottom: 1px solid #252a36;
+  }
+
+  .execution-summary-item:last-child {
+    border-bottom: none;
+  }
+
+  .execution-card-main,
+  .execution-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .execution-node-top {
+    align-items: flex-start;
+  }
+
+  .execution-node-meta,
+  .execution-node-error,
+  .condition-result,
+  .execution-data {
+    margin-left: 0;
+    padding-left: 0;
+  }
+}
+
+.settings-page {
+  width: 100%;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 20px;
+}
+
+.settings-card {
+  padding: 24px;
+  border: 1px solid #2a3040;
+  border-radius: 14px;
+  background: #1b1f29;
+}
+
+.settings-card:last-child {
+  grid-column: 1 / -1;
+}
+
+.settings-card-header {
+  margin-bottom: 20px;
+}
+
+.settings-card-header h3 {
+  margin: 0 0 6px;
+  color: #f1f3f7;
+  font-size: 18px;
+}
+
+.settings-card-header p {
+  margin: 0;
+  color: #8f98a8;
+  font-size: 14px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid #2a3040;
+}
+
+.settings-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.settings-label {
+  color: #8f98a8;
+  font-size: 13px;
+}
+
+.settings-value {
+  color: #f1f3f7;
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.settings-badge {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border: 1px solid #315a42;
+  border-radius: 999px;
+  background: #183525;
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.settings-note {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #151922;
+  color: #8f98a8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-card:last-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .settings-card {
+    padding: 18px;
+  }
+
+  .settings-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

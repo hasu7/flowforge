@@ -30,7 +30,7 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/settings"
+          to="/dashboard/settings"
           className="sidebar-link"
         >
           Settings

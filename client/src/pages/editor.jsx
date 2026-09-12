@@ -39,33 +39,90 @@ import {
 } from "../utils/workflowValidation.js";
 
 import NodePalette from "../components/NodePalette.jsx";
+
 import FlowNode from "../components/FlowNode.jsx";
+
 import NodeConfigPanel from "../components/NodeConfigPanel.jsx";
+
 import VersionHistory from "../components/VersionHistory.jsx";
 
 const nodeTypes = {
   flowNode: FlowNode
 };
 
+const getApiErrorMessage = (
+  error,
+  fallbackMessage
+) => {
+  const responseData =
+    error?.response?.data;
+
+  if (
+    Array.isArray(
+      responseData?.errors
+    ) &&
+    responseData.errors.length
+  ) {
+    return responseData.errors
+      .map((item) => {
+        if (
+          typeof item === "string"
+        ) {
+          return item;
+        }
+
+        if (
+          item?.field &&
+          item?.message
+        ) {
+          return `${item.field}: ${item.message}`;
+        }
+
+        return (
+          item?.message ||
+          String(item)
+        );
+      })
+      .join(" ");
+  }
+
+  return (
+    responseData?.message ||
+    error?.message ||
+    fallbackMessage
+  );
+};
+
 function Editor() {
   const { id } = useParams();
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const [workflow, setWorkflow] =
     useState(null);
 
-  const [nodes, setNodes, onNodesChange] =
-    useNodesState([]);
+  const [
+    nodes,
+    setNodes,
+    onNodesChange
+  ] = useNodesState([]);
 
-  const [edges, setEdges, onEdgesChange] =
-    useEdgesState([]);
+  const [
+    edges,
+    setEdges,
+    onEdgesChange
+  ] = useEdgesState([]);
 
-  const [selectedNodeId, setSelectedNodeId] =
-    useState(null);
+  const [
+    selectedNodeId,
+    setSelectedNodeId
+  ] = useState(null);
 
-  const [selectedEdgeId, setSelectedEdgeId] =
-    useState(null);
+  const [
+    selectedEdgeId,
+    setSelectedEdgeId
+  ] = useState(null);
 
   const [loading, setLoading] =
     useState(true);
@@ -82,63 +139,89 @@ function Editor() {
   const [error, setError] =
     useState("");
 
-  const [saveMessage, setSaveMessage] =
-    useState("");
+  const [
+    saveMessage,
+    setSaveMessage
+  ] = useState("");
 
-  const [publishMessage, setPublishMessage] =
-    useState("");
+  const [
+    publishMessage,
+    setPublishMessage
+  ] = useState("");
 
-  const [runMessage, setRunMessage] =
-    useState("");
+  const [
+    runMessage,
+    setRunMessage
+  ] = useState("");
 
-  const [scheduleStatus, setScheduleStatus] =
-    useState({
-      active: false,
-      nextRun: null
-    });
+  const [
+    scheduleStatus,
+    setScheduleStatus
+  ] = useState({
+    active: false,
+    nextRun: null
+  });
 
-  const [scheduleStatusLoading, setScheduleStatusLoading] =
-    useState(false);
+  const [
+    scheduleStatusLoading,
+    setScheduleStatusLoading
+  ] = useState(false);
 
-  const [webhookTestSecret, setWebhookTestSecret] =
-    useState("");
+  const [
+    webhookTestSecret,
+    setWebhookTestSecret
+  ] = useState("");
 
-  const [webhookTestBody, setWebhookTestBody] =
-    useState(
-      JSON.stringify(
-        {
-          message:
-            "hello FlowForge"
-        },
-        null,
-        2
-      )
-    );
+  const [
+    webhookTestBody,
+    setWebhookTestBody
+  ] = useState(
+    JSON.stringify(
+      {
+        message:
+          "hello FlowForge"
+      },
+      null,
+      2
+    )
+  );
 
-  const [webhookTesting, setWebhookTesting] =
-    useState(false);
+  const [
+    webhookTesting,
+    setWebhookTesting
+  ] = useState(false);
 
-  const [webhookTestResponse, setWebhookTestResponse] =
-    useState(null);
+  const [
+    webhookTestResponse,
+    setWebhookTestResponse
+  ] = useState(null);
 
-  const [webhookTestError, setWebhookTestError] =
-    useState("");
+  const [
+    webhookTestError,
+    setWebhookTestError
+  ] = useState("");
 
   const loadScheduleStatus =
     useCallback(
       async () => {
         try {
-          setScheduleStatusLoading(true);
+          setScheduleStatusLoading(
+            true
+          );
 
           const response =
-            await getScheduleStatus(id);
+            await getScheduleStatus(
+              id
+            );
 
           setScheduleStatus({
             active:
-              response.schedule?.active === true,
+              response.schedule
+                ?.active === true,
 
             nextRun:
-              response.schedule?.nextRun ||
+              response.schedule
+                ?.nextRun ||
               null
           });
         } catch (error) {
@@ -152,7 +235,9 @@ function Editor() {
             nextRun: null
           });
         } finally {
-          setScheduleStatusLoading(false);
+          setScheduleStatusLoading(
+            false
+          );
         }
       },
       [id]
@@ -181,11 +266,9 @@ function Editor() {
               []
             ).map(
               (node) => ({
-                id:
-                  node.id,
+                id: node.id,
 
-                type:
-                  "flowNode",
+                type: "flowNode",
 
                 position: {
                   x:
@@ -199,11 +282,13 @@ function Editor() {
 
                 data: {
                   nodeType:
-                    node.config?.nodeType ||
+                    node.config
+                      ?.nodeType ||
                     "trigger",
 
                   config: {
-                    ...(node.config || {})
+                    ...(node.config ||
+                      {})
                   }
                 }
               })
@@ -219,8 +304,7 @@ function Editor() {
               []
             ).map(
               (edge) => ({
-                id:
-                  edge.id,
+                id: edge.id,
 
                 source:
                   edge.source,
@@ -264,9 +348,10 @@ function Editor() {
           );
 
           setError(
-            error.response?.data
-              ?.message ||
-            "Failed to load workflow."
+            getApiErrorMessage(
+              error,
+              "Failed to load workflow."
+            )
           );
         } finally {
           setLoading(false);
@@ -358,30 +443,65 @@ function Editor() {
         const nodeId =
           `${type}-${Date.now()}`;
 
-        const newNode = {
-          id:
-            nodeId,
+        let defaultConfig = {
+          nodeType: type
+        };
 
-          type:
-            "flowNode",
+        if (type === "trigger") {
+          defaultConfig = {
+            nodeType: "trigger",
+            triggerType: "manual"
+          };
+        }
+
+        if (type === "schedule") {
+          defaultConfig = {
+            nodeType: "schedule",
+            scheduleType: "interval",
+            intervalMinutes: 5,
+            timezone: "Asia/Kolkata",
+            enabled: true
+          };
+        }
+
+        if (type === "http") {
+          defaultConfig = {
+            nodeType: "http",
+            method: "GET",
+            timeoutMs: 10000,
+            retries: 0,
+            body: "",
+            headers: ""
+          };
+        }
+
+        if (type === "condition") {
+          defaultConfig = {
+            nodeType: "condition",
+            field: "",
+            operator: "equals",
+            value: ""
+          };
+        }
+
+        const newNode = {
+          id: nodeId,
+
+          type: "flowNode",
 
           position: {
             x:
               250 +
-              Math.random() *
-              200,
+              Math.random() * 200,
 
             y:
               100 +
-              Math.random() *
-              300
+              Math.random() * 300
           },
 
           data: {
-            nodeType:
-              type,
-
-            config: {}
+            nodeType: type,
+            config: defaultConfig
           }
         };
 
@@ -560,8 +680,10 @@ function Editor() {
         }
 
         if (
-          event.key === "Delete" ||
-          event.key === "Backspace"
+          event.key ===
+            "Delete" ||
+          event.key ===
+            "Backspace"
         ) {
           event.preventDefault();
 
@@ -590,11 +712,9 @@ function Editor() {
         const nodesToSave =
           nodes.map(
             (node) => ({
-              id:
-                node.id,
+              id: node.id,
 
-              type:
-                node.type,
+              type: node.type,
 
               position: {
                 x:
@@ -619,8 +739,7 @@ function Editor() {
         const edgesToSave =
           edges.map(
             (edge) => ({
-              id:
-                edge.id,
+              id: edge.id,
 
               source:
                 edge.source,
@@ -685,9 +804,10 @@ function Editor() {
         );
 
         setError(
-          error.response?.data
-            ?.message ||
-          "Failed to save workflow."
+          getApiErrorMessage(
+            error,
+            "Failed to save workflow."
+          )
         );
       } finally {
         setSaving(false);
@@ -710,7 +830,8 @@ function Editor() {
         );
 
       if (
-        validationErrors.length > 0
+        validationErrors.length >
+        0
       ) {
         setError(
           validationErrors.join(
@@ -759,9 +880,10 @@ function Editor() {
         );
 
         setError(
-          error.response?.data
-            ?.message ||
-          "Failed to publish workflow."
+          getApiErrorMessage(
+            error,
+            "Failed to publish workflow."
+          )
         );
       } finally {
         setPublishing(false);
@@ -784,7 +906,8 @@ function Editor() {
         );
 
       if (
-        validationErrors.length > 0
+        validationErrors.length >
+        0
       ) {
         setError(
           validationErrors.join(
@@ -837,10 +960,10 @@ function Editor() {
         );
 
         setError(
-          error.response?.data
-            ?.message ||
-          error.message ||
-          "Failed to run workflow."
+          getApiErrorMessage(
+            error,
+            "Failed to run workflow."
+          )
         );
       } finally {
         setRunning(false);
@@ -862,9 +985,11 @@ function Editor() {
       try {
         if (
           !selectedNode ||
-          selectedNode.data?.nodeType !==
+          selectedNode.data
+            ?.nodeType !==
             "trigger" ||
-          selectedNode.data?.config
+          selectedNode.data
+            ?.config
             ?.triggerType !==
             "webhook"
         ) {
@@ -882,8 +1007,14 @@ function Editor() {
             "string"
             ? config.webhookPath
                 .trim()
-                .replace(/^\/+/, "")
-                .replace(/\/+$/, "")
+                .replace(
+                  /^\/+/,
+                  ""
+                )
+                .replace(
+                  /\/+$/,
+                  ""
+                )
             : "";
 
         if (!webhookPath) {
@@ -901,7 +1032,7 @@ function Editor() {
         const baseUrl =
           api.defaults.baseURL
             ? api.defaults.baseURL.replace(
-                /\/$/,
+                /\/+$/,
                 ""
               )
             : "";
@@ -929,7 +1060,8 @@ function Editor() {
         const headers = {};
 
         if (
-          webhookMethod !== "GET"
+          webhookMethod !==
+          "GET"
         ) {
           headers[
             "Content-Type"
@@ -956,7 +1088,8 @@ function Editor() {
         };
 
         if (
-          webhookMethod !== "GET"
+          webhookMethod !==
+          "GET"
         ) {
           requestOptions.body =
             JSON.stringify(
@@ -1018,7 +1151,9 @@ function Editor() {
           "Webhook test failed."
         );
       } finally {
-        setWebhookTesting(false);
+        setWebhookTesting(
+          false
+        );
       }
     };
 
@@ -1039,6 +1174,7 @@ function Editor() {
       );
 
       await loadWorkflow();
+
       await loadScheduleStatus();
     };
 
@@ -1050,9 +1186,11 @@ function Editor() {
     ) || null;
 
   const selectedNodeIsWebhook =
-    selectedNode?.data?.nodeType ===
+    selectedNode?.data
+      ?.nodeType ===
       "trigger" &&
-    selectedNode?.data?.config
+    selectedNode?.data
+      ?.config
       ?.triggerType ===
       "webhook";
 
@@ -1064,14 +1202,20 @@ function Editor() {
       ? selectedNode.data.config
           .webhookPath
           .trim()
-          .replace(/^\/+/, "")
-          .replace(/\/+$/, "")
+          .replace(
+            /^\/+/,
+            ""
+          )
+          .replace(
+            /\/+$/,
+            ""
+          )
       : "";
 
   const webhookBaseUrl =
     api.defaults.baseURL
       ? api.defaults.baseURL.replace(
-          /\/$/,
+          /\/+$/,
           ""
         )
       : "";
@@ -1117,7 +1261,6 @@ function Editor() {
       }}
     >
       <div className="editor-toolbar">
-
         <div>
           <h2 className="editor-title">
             {workflow.name}
@@ -1129,7 +1272,6 @@ function Editor() {
           </p>
 
           <div className="workflow-version-info">
-
             <span>
               Draft revision:{" "}
               {workflow.version}
@@ -1141,12 +1283,10 @@ function Editor() {
                 ? `v${workflow.publishedVersion}`
                 : "Not published"}
             </span>
-
           </div>
         </div>
 
         <div className="editor-actions">
-
           {saveMessage && (
             <span className="save-message">
               {saveMessage}
@@ -1233,7 +1373,6 @@ function Editor() {
               ? "Saving & Running..."
               : "Run Workflow"}
           </button>
-
         </div>
       </div>
 
@@ -1244,7 +1383,6 @@ function Editor() {
             "flex"
         }}
       >
-
         <NodePalette
           onAddNode={
             handleAddNode
@@ -1386,7 +1524,6 @@ function Editor() {
               </div>
 
               <div className="node-config-section">
-
                 <div className="config-field">
                   <label>
                     Endpoint
@@ -1409,14 +1546,12 @@ function Editor() {
 
                   <input
                     type="text"
-                    value={
-                      (
-                        selectedNode.data
-                          ?.config
-                          ?.webhookMethod ||
-                        "POST"
-                      ).toUpperCase()
-                    }
+                    value={(
+                      selectedNode.data
+                        ?.config
+                        ?.webhookMethod ||
+                      "POST"
+                    ).toUpperCase()}
                     readOnly
                   />
                 </div>
@@ -1432,7 +1567,9 @@ function Editor() {
                     value={
                       webhookTestSecret
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event
+                    ) =>
                       setWebhookTestSecret(
                         event.target.value
                       )
@@ -1464,7 +1601,9 @@ function Editor() {
                     value={
                       webhookTestBody
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event
+                    ) =>
                       setWebhookTestBody(
                         event.target.value
                       )
@@ -1504,7 +1643,9 @@ function Editor() {
                       marginTop: "12px"
                     }}
                   >
-                    {webhookTestError}
+                    {
+                      webhookTestError
+                    }
                   </div>
                 )}
 
@@ -1521,7 +1662,8 @@ function Editor() {
                           "space-between",
                         alignItems:
                           "center",
-                        marginBottom: "8px"
+                        marginBottom:
+                          "8px"
                       }}
                     >
                       <strong>
@@ -1577,7 +1719,6 @@ function Editor() {
                     </pre>
                   </div>
                 )}
-
               </div>
             </div>
           )}
@@ -1594,7 +1735,6 @@ function Editor() {
             }
           />
         </div>
-
       </div>
     </div>
   );

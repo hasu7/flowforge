@@ -12,6 +12,7 @@ import NewWorkflow from "./pages/newWorkflow.jsx";
 import Editor from "./pages/editor.jsx";
 import Executions from "./pages/executions.jsx";
 import ExecutionDetail from "./pages/executionDetail.jsx";
+import Settings from "./pages/settings.jsx";
 
 import DashboardLayout from "./layouts/dashboard.layout.jsx";
 
@@ -91,6 +92,11 @@ function App() {
           <Route
             path="editor/:id"
             element={<Editor />}
+          />
+
+          <Route
+            path="settings"
+            element={<Settings />}
           />
         </Route>
 
