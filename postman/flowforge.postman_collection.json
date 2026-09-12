@@ -1,0 +1,339 @@
+{
+  "info": {
+    "_postman_id": "efd565d7-d63c-4210-b459-b44edd388352",
+    "name": "flowforge",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53952145",
+    "_collection_link": "https://go.postman.co/collection/53952145-efd565d7-d63c-4210-b459-b44edd388352?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"hasu\",\r\n  \"email\": \"hasu@45.com\",\r\n  \"password\": \"nothasu1234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{server}}/register",
+          "host": [
+            "{{server}}"
+          ],
+          "path": [
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"testaccount@123gmail.com\",\r\n  \"password\": \"test1234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{server}}/login",
+          "host": [
+            "{{server}}"
+          ],
+          "path": [
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "me",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{server}}/me",
+          "host": [
+            "{{server}}"
+          ],
+          "path": [
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "logout",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{server}}/logout",
+          "host": [
+            "{{server}}"
+          ],
+          "path": [
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workflow",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{notServer}}/workflows",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get workflows",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/workflows",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update a workflow",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Updated Workflow\",\r\n  \"description\": \"Updated description\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{notServer}}/workflows/6a96729ff2d60d72cd077242",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a96729ff2d60d72cd077242"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add some nodes manually",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nodes\": [\r\n    {\r\n      \"id\": \"trigger-123\",\r\n      \"type\": \"flowNode\",\r\n      \"position\": {\r\n        \"x\": 100,\r\n        \"y\": 100\r\n      },\r\n      \"config\": {\r\n        \"nodeType\": \"trigger\",\r\n        \"triggerType\": \"manual\"\r\n      }\r\n    },\r\n    {\r\n      \"id\": \"http-456\",\r\n      \"type\": \"flowNode\",\r\n      \"position\": {\r\n        \"x\": 400,\r\n        \"y\": 100\r\n      },\r\n      \"config\": {\r\n        \"nodeType\": \"http\",\r\n        \"method\": \"GET\",\r\n        \"url\": \"https://example.com\"\r\n      }\r\n    }\r\n  ],\r\n  \"edges\": [\r\n    {\r\n      \"id\": \"edge-123\",\r\n      \"source\": \"trigger-123\",\r\n      \"target\": \"http-456\",\r\n      \"sourceHandle\": null,\r\n      \"targetHandle\": null\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{notServer}}/workflows/6a96729ff2d60d72cd077242",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a96729ff2d60d72cd077242"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/health",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete workflow",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/workflows/6a96729ff2d60d72cd077242",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a96729ff2d60d72cd077242"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "run execution",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/workflows/6a980d2aaf0f4e6ee72db53b/run",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a980d2aaf0f4e6ee72db53b",
+            "run"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get all executions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/executions/6a98115a75e0e7bdf4ccbcf1",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "executions",
+            "6a98115a75e0e7bdf4ccbcf1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/workflows/6a993cf9159152d7315edab2/versions/1/restore",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a993cf9159152d7315edab2",
+            "versions",
+            "1",
+            "restore"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{notServer}}/workflows/6a993cf9159152d7315edab2/publish",
+          "host": [
+            "{{notServer}}"
+          ],
+          "path": [
+            "workflows",
+            "6a993cf9159152d7315edab2",
+            "publish"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    }
+  ]
+}
